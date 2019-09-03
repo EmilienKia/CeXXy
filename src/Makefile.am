@@ -11,7 +11,7 @@ AM_CFLAGS =\
 AM_CXXFLAGS = -std=c++11
 
 
-lib_LTLIBRARIES = libcexxy-core.la
+lib_LTLIBRARIES = libcexxy-core.la libcexxy-security.la
 
 libcexxy_core_la_SOURCES = \
 	io/codec.hpp io/codec.cpp \
@@ -22,3 +22,9 @@ libcexxy_core_la_SOURCES = \
 	math/big-integer.hpp math/big-integer.cpp
 
 libcexxy_core_la_CXXFLAGS =
+
+
+libcexxy_security_la_SOURCES = \
+	security/message-digest.hpp security/message-digest.cpp
+
+libcexxy_security_la_CXXFLAGS =

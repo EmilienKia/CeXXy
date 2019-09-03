@@ -22,6 +22,9 @@ dnl Check for GMP
 AC_CHECK_LIB(gmp, __gmpz_init, ,
        [AC_MSG_ERROR([GNU MP not found, see https://gmplib.org/])])
 
+dnl Check for OpenSSL libs
+PKG_CHECK_MODULES(LIBCRYPTO, libcrypto)
+
 
 DX_INIT_DOXYGEN(cexxy, [Doxyfile], [doxygen])
 
