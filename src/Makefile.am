@@ -25,6 +25,8 @@ libcexxy_core_la_CXXFLAGS =
 
 
 libcexxy_security_la_SOURCES = \
-	security/message-digest.hpp security/message-digest.cpp
+	security/key.hpp security/key.cpp \
+	security/message-digest.hpp security/message-digest.cpp \
+	security/cipher.hpp security/cipher.cpp
 
 libcexxy_security_la_CXXFLAGS =
