@@ -261,7 +261,7 @@ public:
 		assign(arr.data(), arr.size(), order, endian, nails);
 	}
 
-	template<typename T> std::vector<T> get_vector(WordOrder order = WORD_MOST_SIGNIFICANT_FIRST, Endianess endian = NATIVE, size_t nails = 0)
+	template<typename T> std::vector<T> get_vector(WordOrder order = WORD_MOST_SIGNIFICANT_FIRST, Endianess endian = NATIVE, size_t nails = 0) const
 	{
 		size_t size = sizeof(T);
 		size_t numb = 8*size - nails;
@@ -279,7 +279,7 @@ private:
 
 namespace std
 {
-	template<> void swap(cxy::math::big_integer& integer1, cxy::math::big_integer& integer2)
+	template<> inline void swap(cxy::math::big_integer& integer1, cxy::math::big_integer& integer2)
 	{
 		integer1.swap(integer2);
 	}

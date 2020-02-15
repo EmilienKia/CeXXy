@@ -24,6 +24,7 @@
 #include <vector>
 #include <initializer_list>
 
+#include "../math/big-integer.hpp"
 
 namespace cxy
 {
@@ -80,6 +81,27 @@ public:
     virtual std::vector<uint8_t/*std::byte*/> value()const=0;
 };
 
+/**
+ * Base interface for key pair.
+ */
+class key_pair
+{
+public:
+    virtual std::shared_ptr<cxy::security::public_key> public_key() const =0;
+    virtual std::shared_ptr<cxy::security::private_key> private_key() const =0;
+};
+
+/**
+ *
+ */
+class key_pair_generator
+{
+public:
+    virtual std::string algorithm() const =0;
+    virtual std::shared_ptr<key_pair> generate() =0;
+};
+
+
 
 
 class raw_secret_key : public secret_key
@@ -104,6 +126,79 @@ public:
 
 };
 
+
+
+
+
+class rsa_key : public virtual key
+{
+public:
+    virtual cxy::math::big_integer modulus() const =0;
+};
+
+
+class rsa_public_key : public virtual public_key, public virtual rsa_key
+{
+public:
+    virtual cxy::math::big_integer public_exponent() const =0;
+};
+
+class rsa_private_key : public virtual private_key, public virtual rsa_key
+{
+public:
+    virtual cxy::math::big_integer private_exponent() const =0;
+};
+
+class rsa_private_crt_key : public rsa_private_key
+{
+public:
+    virtual cxy::math::big_integer crt_coefficient() const =0;
+    virtual cxy::math::big_integer prime_exponent_p() const =0;
+    virtual cxy::math::big_integer prime_exponent_q() const =0;
+    virtual cxy::math::big_integer prime_p() const =0;
+    virtual cxy::math::big_integer prime_q() const =0;
+    virtual cxy::math::big_integer public_exponent() const =0;
+};
+
+class rsa_multiprime_private_crt_key : public rsa_private_crt_key
+{
+public:
+    virtual std::vector<cxy::math::big_integer> other_prime_info() const =0;
+};
+
+class rsa_key_pair_generator;
+
+class rsa_key_pair : public virtual key_pair
+{
+public:
+    virtual std::shared_ptr<cxy::security::rsa_public_key> rsa_public_key() const =0;
+    virtual std::shared_ptr<cxy::security::rsa_private_key> rsa_private_key() const =0;
+
+    virtual std::shared_ptr<cxy::security::public_key> public_key() const override {
+        return std::dynamic_pointer_cast<cxy::security::public_key>(rsa_public_key());
+    }
+
+    virtual std::shared_ptr<cxy::security::private_key> private_key() const override {
+        return std::dynamic_pointer_cast<cxy::security::private_key>(rsa_private_key());
+    }
+
+    static std::shared_ptr<rsa_key_pair_generator> generator();
+};
+
+class rsa_key_pair_generator : public virtual key_pair_generator
+{
+public:
+    static const cxy::math::big_integer F0;
+    static const cxy::math::big_integer F4;
+
+    virtual std::string algorithm() const override;
+
+    virtual rsa_key_pair_generator& key_size(size_t key_size) =0;
+    virtual rsa_key_pair_generator& public_exponent(const cxy::math::big_integer& pub) =0;
+
+    virtual size_t key_size() const =0;
+    virtual cxy::math::big_integer public_exponent() const =0;
+};
 
 }} // namespace cxy::security
 #endif // _SECURITY_KEY_HPP_

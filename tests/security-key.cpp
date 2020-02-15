@@ -8,6 +8,44 @@
 
 #include "security/key.hpp"
 
+#include "security/openssl.hpp"
+
+#include <openssl/bn.h>
+
+TEST_CASE( "Convert OpenSSL BN to big_integer" ) {
+
+    BIGNUM* bn = BN_new();
+    cxy::math::big_integer bi;
+
+    unsigned long l = 12345678l;
+
+    BN_set_word(bn, l);
+
+    bi = cxy::security::openssl::bn2bi(bn);
+
+    BN_clear_free(bn);
+
+    REQUIRE( bi == l);
+}
+
+TEST_CASE( "Convert big_integer to OpenSSL BN" ) {
+
+    BIGNUM* bn = BN_new();
+    cxy::math::big_integer bi;
+
+    unsigned long l = 12345678l;
+
+    bi = l;
+
+    cxy::security::openssl::bi2bn(bi, bn);
+
+    unsigned long res = BN_get_word(bn);
+
+    BN_clear_free(bn);
+
+    REQUIRE( res == l);
+}
+
 
 TEST_CASE( "Raw secret key", "[key]" ) {
     using namespace cxy;
@@ -17,20 +55,22 @@ TEST_CASE( "Raw secret key", "[key]" ) {
     REQUIRE( key.size() == 16);
 }
 
-/*
-TEST_CASE( "Simple SHA1", "[md]" ) {
+
+TEST_CASE( "RSA gen keys", "[key][rsa]" ) {
     using namespace cxy;
 
-    auto md = security::message_digest::get("SHA1");
+    auto pair = security::rsa_key_pair::generator()->key_size(2048).public_exponent(7ul).generate();
+    REQUIRE( pair != nullptr);
+    auto rsapair = std::dynamic_pointer_cast<security::rsa_key_pair>(pair);
+    REQUIRE( rsapair != nullptr);
 
-    auto res = md->update("The quick brown fox jumps", 25).update(" over the lazy dog", 18).digest();
+    auto pub = rsapair->rsa_public_key();
+    REQUIRE( pub != nullptr);
+    REQUIRE( pub->public_exponent() != 0l );
 
-    std::vector<uint8_t> val = {
-        0x2f, 0xd4, 0xe1, 0xc6,     0x7a, 0x2d, 0x28, 0xfc,
-        0xed, 0x84, 0x9e, 0xe1,     0xbb, 0x76, 0xe7, 0x39,
-        0x1b, 0x93, 0xeb, 0x12
-    };
+    auto priv = rsapair->rsa_private_key();
+    REQUIRE( priv != nullptr);
+    REQUIRE( priv->private_exponent() != 0l );
 
-    REQUIRE( res == val );
+    REQUIRE( pub->modulus() == priv->modulus() );
 }
-*/
