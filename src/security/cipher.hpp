@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * security/cipher.hpp
- * Copyright (C) 2019 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2019-2020 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -24,10 +24,24 @@
 
 #include "key.hpp"
 
+//
+// Cipher Padding
+// 
+
 #define CXY_CIPHER_NO_PADDING      "NoPadding"
+
+// Symmetric key (AES) cipher padding 
 #define CXY_CIPHER_PKCS5_PADDING   "PKCS5Padding"
 #define CXY_CIPHER_PKCS7_PADDING   "PKCS7Padding"
 
+// RSA cipher padding
+#define CXY_CIPHER_PKCS1_PADDING        "PKCS1Padding"
+#define CXY_CIPHER_PKCS1_OAEP_PADDING    "OAEPPadding"
+
+
+//
+// Cipher mode
+//
 #define CXY_CIPHER_MODE_NONE    "NONE"
 #define CXY_CIPHER_MODE_CBC     "CBC"
 #define CXY_CIPHER_MODE_CFB     "CFB"
@@ -40,12 +54,14 @@
 #define CXY_CIPHER_MODE_GCM     "GCM"
 #define CXY_CIPHER_MODE_OFB     "OFB"
 
-
+//
+// Cipher algorithm
+//
 #define CXY_CIPHER_AES       "AES"
 #define CXY_CIPHER_AES_128   "AES_128"
 #define CXY_CIPHER_AES_192   "AES_192"
 #define CXY_CIPHER_AES_256   "AES_256"
-
+#define CXY_CIPHER_RSA       "RSA"
 
 
 namespace cxy
@@ -75,6 +91,12 @@ public:
     cipher_builder& padding(const std::string& padding);
     cipher_builder& key(cxy::security::key& key);
     cipher_builder& initial_vector(const std::vector<uint8_t/*std::byte*/> iv);
+
+    const std::string& algorithm() const;
+    const std::string& mode() const;
+    const std::string& padding() const;
+    const cxy::security::key* key() const;
+    const std::vector<uint8_t/*std::byste*/>& initial_vector() const;
 
     std::shared_ptr<cipher> encrypt();
     std::shared_ptr<cipher> decrypt();

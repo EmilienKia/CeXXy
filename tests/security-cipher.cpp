@@ -12,7 +12,7 @@
 #include "security/cipher.hpp"
 
 
-TEST_CASE( "AES test", "[cipher]" ) {
+TEST_CASE( "AES test", "[cipher][AES]" ) {
     using namespace cxy;
 
     security::raw_secret_key key{0x01, 0x02, 0x03, 0x04, 0x11, 0x12, 0x13, 0x14, 0x21, 0x22, 0x23, 0x24, 0x31, 0x32, 0x33, 0x34};
@@ -60,4 +60,57 @@ TEST_CASE( "AES test", "[cipher]" ) {
 
     // Final test
     REQUIRE( sample == decoded );
+}
+
+TEST_CASE( "RSA sipher test", "[cipher][RSA]" ) {
+    using namespace cxy;
+
+    constexpr size_t key_size = 2048 /* bits */;
+
+    auto pair = security::rsa_key_pair::generator()->key_size(key_size).public_exponent(7ul).generate();
+    REQUIRE( pair != nullptr);
+    auto rsapair = std::dynamic_pointer_cast<security::rsa_key_pair>(pair);
+    REQUIRE( rsapair != nullptr);
+
+    auto pub = rsapair->rsa_public_key();
+    REQUIRE( pub != nullptr);
+    auto priv = rsapair->rsa_private_key();
+    REQUIRE( priv != nullptr);
+
+    std::random_device r;
+    std::default_random_engine e1(r());
+    std::uniform_int_distribution<uint8_t> uniform_dist(0, 255);
+
+    std::shared_ptr<security::cipher> enc, dec;
+    std::vector<uint8_t> sample;
+
+    SECTION( "No padding: data size shall equals to key size" ) {
+        std::generate_n(std::back_inserter(sample), key_size/8, [&](){return uniform_dist(e1);});
+        enc = cxy::security::cipher_builder().key(*pub).padding(CXY_CIPHER_NO_PADDING).encrypt();
+        dec = cxy::security::cipher_builder().key(*priv).padding(CXY_CIPHER_NO_PADDING).decrypt();
+    }
+
+    SECTION( "PKCS1 padding: data size shall be less or equals to key size - 11" ) {
+        std::generate_n(std::back_inserter(sample), key_size/8 - 11 , [&](){return uniform_dist(e1);});
+        enc = cxy::security::cipher_builder().key(*pub).padding(CXY_CIPHER_PKCS1_PADDING).encrypt();
+        dec = cxy::security::cipher_builder().key(*priv).padding(CXY_CIPHER_PKCS1_PADDING).decrypt();
+    }
+
+    SECTION( "OAEP padding: data size shall be less or equals to key size - 42" ) {
+        std::generate_n(std::back_inserter(sample), key_size/8 - 42 , [&](){return uniform_dist(e1);});
+        enc = cxy::security::cipher_builder().key(*pub).padding(CXY_CIPHER_PKCS1_OAEP_PADDING).encrypt();
+        dec = cxy::security::cipher_builder().key(*priv).padding(CXY_CIPHER_PKCS1_OAEP_PADDING).decrypt();
+    }
+
+
+    REQUIRE( enc != nullptr );
+    REQUIRE( dec != nullptr );
+
+    std::vector<uint8_t> encoded = enc->finalize(sample.data(), sample.size() );
+    REQUIRE( encoded.size() > 0 );
+
+    std::vector<uint8_t> res = dec->finalize(encoded.data(), encoded.size() );
+    REQUIRE( res == sample );
+
+
 }
