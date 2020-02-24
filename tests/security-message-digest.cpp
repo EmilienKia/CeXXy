@@ -46,3 +46,9 @@ TEST_CASE( "Simple SHA1", "[md]" ) {
 
     REQUIRE( res == val );
 }
+
+TEST_CASE( "Bad digest name", "[md]" ) {
+    using namespace cxy;
+
+    REQUIRE_THROWS_AS(security::message_digest::get("Titi"), security::no_such_algorithm_exception);
+}

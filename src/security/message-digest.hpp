@@ -23,6 +23,8 @@
 #include <memory>
 #include <vector>
 
+#include "security/exceptions.hpp"
+
 namespace cxy
 {
 namespace security

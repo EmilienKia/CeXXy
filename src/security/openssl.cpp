@@ -19,8 +19,11 @@
 
 #include "openssl.hpp"
 
+#include "exceptions.hpp"
+
 #include <iostream>
 #include <functional>
+#include <sstream>
 
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
@@ -162,8 +165,9 @@ std::shared_ptr<cipher> evp_cipher::get(const std::string& algorithm, const std:
         // See https://crypto.stackexchange.com/questions/9043/what-is-the-difference-between-pkcs5-padding-and-pkcs7-padding
         pad = true;
     } else {
-        std::cerr << "Unsupported padding : " << padding << std::endl;
-        return nullptr; // No supported padding method
+        std::ostringstream stm;
+        stm << "Unsupported padding : " << padding;
+        throw no_such_padding_exception(stm.str());
     }
 
     // TODO normalize params
@@ -175,14 +179,14 @@ std::shared_ptr<cipher> evp_cipher::get(const std::string& algorithm, const std:
             if(iv.size()==ivsz) {
                 return std::make_shared<evp_cipher>(c, pad, seckey->value().data(), iv.data(), encrypt);
             } else {
-                std::cerr << "Bad IV size (" << iv.size() << " / " << ivsz << " expected)" << std::endl;
-                return nullptr;
+                std::ostringstream stm;
+                stm << "Bad IV size (" << iv.size() << " / " << ivsz << " expected)";
+                throw invalid_key_exception(stm.str());
             }
         }
     }
 
-    std::cerr << "No corresponding cipher." << std::endl;
-    return nullptr;
+    throw no_such_algorithm_exception("No corresponding cipher.");
 }
 
 evp_cipher::evp_cipher(const EVP_CIPHER *type, bool padding, const unsigned char *key, const unsigned char *iv, bool enc)
@@ -190,13 +194,11 @@ evp_cipher::evp_cipher(const EVP_CIPHER *type, bool padding, const unsigned char
     _ctx = EVP_CIPHER_CTX_new();
 
     if(!EVP_CipherInit(_ctx, type, key, iv, enc?1:0)) {
-        std::cerr << "Error when instatiating cipher." << std::endl;
-        // TODO throw exception.
+        throw invalid_key_exception("Error when instatiating cipher.");
     }
 
     if(!EVP_CIPHER_CTX_set_padding(_ctx, padding ? 1 : 0)) {
-        std::cerr << "Error when setting padding to cipher." << std::endl;
-        // TODO throw exception.
+        throw invalid_key_exception("Error when setting padding to cipher.");
     }
 }
 
@@ -211,7 +213,7 @@ evp_cipher::~evp_cipher()
 cipher& evp_cipher::update_aad(const void* data, size_t sz)
 {
     if(!EVP_CipherUpdate(_ctx, nullptr, nullptr, (const unsigned char*)data, sz)) {
-        std::cerr << "Error while streaming aad data to cipher" << std::endl;
+        throw invalid_key_exception("Error while streaming aad data to cipher.");
     }
 }
 
@@ -225,7 +227,7 @@ std::vector<uint8_t/*std::byte*/> evp_cipher::update(const void* data, size_t sz
     while(sz>0) {
         int s = std::min((int)sz, 1024);
         if(!EVP_CipherUpdate(_ctx, buffer, &len, ptr, s)) {
-            std::cerr << "Error while streaming data to cipher" << std::endl;
+            throw invalid_key_exception("Error while streaming data to cipher.");
         }
         res.insert(res.end(), buffer, buffer+len);
         sz -= s;
@@ -242,7 +244,7 @@ std::vector<uint8_t/*std::byte*/> evp_cipher::finalize()
     int len;
 
     if(!EVP_CipherFinal_ex(_ctx, buffer, &len)) {
-        std::cerr << "Error while streaming data to cipher" << std::endl;
+        throw invalid_key_exception("Error while streaming data to cipher.");
     }
     res.insert(res.end(), buffer, buffer+len);
 
@@ -259,7 +261,7 @@ std::vector<uint8_t/*std::byte*/> evp_cipher::finalize(const void* data, size_t 
     while(sz>0) {
         int s = std::min((int)sz, 1024);
         if(!EVP_CipherUpdate(_ctx, buffer, &len, ptr, s)) {
-            std::cerr << "Error while streaming data to cipher" << std::endl;
+            throw invalid_key_exception("Error while streaming data to cipher.");
         }
         res.insert(res.end(), buffer, buffer+len);
         sz -= s;
@@ -267,7 +269,7 @@ std::vector<uint8_t/*std::byte*/> evp_cipher::finalize(const void* data, size_t 
     }
 
     if(!EVP_CipherFinal_ex(_ctx, buffer, &len)) {
-        std::cerr << "Error while streaming data to cipher" << std::endl;
+        throw invalid_key_exception("Error while finalizing ciphering.");
     }
     res.insert(res.end(), buffer, buffer+len);
 
@@ -291,21 +293,18 @@ std::shared_ptr<cipher> evp_pkey_cipher::get(const std::string& algorithm, const
     const rsa_key* rsakey = dynamic_cast<const rsa_key*>(key);
     if(rsakey!=nullptr) {
         if(!algorithm.empty() && algorithm!=CXY_KEY_RSA) {
-            // Key type mismatch
-            // TODO throw exception
-            return nullptr;
+            throw invalid_key_exception("Key type mismatch.");
         }
 
         const ossl_rsa_key* orsakey = dynamic_cast<const ossl_rsa_key*>(rsakey);
         if(orsakey==nullptr) {
             // TODO convert key to openssl
-            return nullptr;
+            throw security_exception("Not implemented yet");
         }
 
         EVP_PKEY *pkey = EVP_PKEY_new();
         if(!EVP_PKEY_set1_RSA(pkey, const_cast<RSA*>(orsakey->get()))) {
-            // Key problem
-            return nullptr;
+            throw invalid_key_exception("Cannot assign RSA key");
         }
 
         EVP_PKEY_PADDING_MODE padmode = RSA_PAD_NONE;
@@ -314,40 +313,41 @@ std::shared_ptr<cipher> evp_pkey_cipher::get(const std::string& algorithm, const
         } else if(padding==CXY_CIPHER_PKCS1_OAEP_PADDING) {
             padmode = RSA_PAD_OAEP;
         } else if(!padding.empty() && padding!=CXY_CIPHER_NO_PADDING) {
-            std::cerr << "Unsupported padding mode '" << padding << "' for RSA" << std::endl;
-            return nullptr;
+            std::ostringstream stm;
+            stm << "Unsupported padding mode '" << padding << "' for RSA.";
+            throw no_such_padding_exception(stm.str());
         }
 
         return std::dynamic_pointer_cast<cipher>(std::make_shared<evp_pkey_cipher>(pkey, padmode, encrypt));
     }
 
-    return nullptr;
+    throw no_such_algorithm_exception();
 }
 
 evp_pkey_cipher::evp_pkey_cipher(EVP_PKEY *pkey, EVP_PKEY_PADDING_MODE padding, bool enc) : _encode(enc) {
     _ctx = EVP_PKEY_CTX_new(pkey, nullptr);
     if(!_ctx) {
-        // TODO throw error
+        throw invalid_key_exception(/*...*/);
     }
 
     if((enc ? EVP_PKEY_encrypt_init : EVP_PKEY_decrypt_init)(_ctx) <= 0) {
-        // TODO throw an error
+        throw invalid_key_exception(/*...*/);
     }
 
     switch(padding) {
         case RSA_PAD_NONE:
             if(EVP_PKEY_CTX_set_rsa_padding(_ctx, RSA_NO_PADDING) <= 0) {
-                // TODO throw an error
+                throw invalid_key_exception(/*...*/);
             }
             break;
         case RSA_PAD_PKCS1:
             if(EVP_PKEY_CTX_set_rsa_padding(_ctx, RSA_PKCS1_PADDING) <= 0) {
-                // TODO throw an error
+                throw invalid_key_exception(/*...*/);
             }
             break;
         case RSA_PAD_OAEP:
             if(EVP_PKEY_CTX_set_rsa_padding(_ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
-                // TODO throw an error
+                throw invalid_key_exception(/*...*/);
             }
             break;
     }
@@ -366,18 +366,19 @@ cipher& evp_pkey_cipher::update_aad(const void* data, size_t sz) {
 }
 
 std::vector<uint8_t/*std::byte*/> evp_pkey_cipher::update(const void* data, size_t sz) {
-    // TODO : not relevant here.
+    throw invalid_key_exception("Update not supported for RSA ciphering");
 }
 
 std::vector<uint8_t/*std::byte*/> evp_pkey_cipher::finalize() {
-    // TODO : not relevant here.
+    throw invalid_key_exception("Empty finalize not supported for RSA ciphering");
 }
 
 std::vector<uint8_t/*std::byte*/> evp_pkey_cipher::finalize(const void* data, size_t sz) {
     size_t outlen;
     if((_encode ? EVP_PKEY_encrypt : EVP_PKEY_decrypt)(_ctx, nullptr, &outlen, (const uint8_t*)data, sz) <= 0) {
-        std::cerr << "Problem in " << (_encode ? "encrypt" : "decrypt") << " size calculation" << std::endl;
-        // TODO throw an error
+        std::ostringstream stm;
+        stm << "Problem in " << (_encode ? "encrypt" : "decrypt") << " size calculation.";
+        throw invalid_key_exception(stm.str());
     }
 
     char errbuff[1024];
@@ -386,8 +387,9 @@ std::vector<uint8_t/*std::byte*/> evp_pkey_cipher::finalize(const void* data, si
     int r = (_encode ? EVP_PKEY_encrypt : EVP_PKEY_decrypt)(_ctx, res.data(), &outlen, (const uint8_t*)data, sz);
     if(r <= 0) {
         ERR_error_string_n(ERR_get_error() , errbuff, 1024);
-        std::cerr << "Problem in " << (_encode ? "encrypting" : "decrypting") << " : " << r << " : " << errbuff << std::endl;
-        // TODO throw an error
+        std::ostringstream stm;
+        stm << "Problem in " << (_encode ? "encrypting" : "decrypting") << " : " << r << " : " << errbuff;
+        throw invalid_key_exception(stm.str());
     }
     res.resize(outlen);
     return res;
@@ -523,6 +525,7 @@ cxy::math::big_integer ossl_rsa_multiprime_private_crt_key::public_exponent() co
 
 std::vector<cxy::math::big_integer> ossl_rsa_multiprime_private_crt_key::other_prime_info() const {
     // TODO
+    throw key_exception("Not implemnted yet");
 }
 
 
@@ -595,8 +598,7 @@ std::shared_ptr<key_pair> ossl_rsa_key_pair_generator::generate() {
     if(RSA_generate_key_ex(rsa, _key_size, bi2bn(_pub), nullptr)!=0) {
         return std::dynamic_pointer_cast<key_pair>(std::make_shared<ossl_rsa_key_pair>(rsa));
     } else {
-        // TODO process error
-        return nullptr;
+        throw std::runtime_error("Error while genrating RSA key");
     }
 }
 

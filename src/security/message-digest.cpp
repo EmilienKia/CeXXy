@@ -21,6 +21,8 @@
 
 #include <openssl/evp.h>
 
+#include "exceptions.hpp"
+
 #include <exception>
 #include <functional>
 #include <map>
@@ -110,7 +112,11 @@ std::map<std::string, std::function<const EVP_MD*()>> evp_md::_evp {
 std::shared_ptr<evp_md> evp_md::get(const std::string& algorithm)
 {
     auto it = _evp.find(algorithm);
-    return it!=_evp.end() ? std::make_shared<evp_md>(it->second(), it->first) : nullptr;
+    if (it!=_evp.end()) {
+        return std::make_shared<evp_md>(it->second(), it->first);
+    } else {
+        throw no_such_algorithm_exception(algorithm + " is not supported");
+    }
 }
 
 evp_md::evp_md(const EVP_MD *type, const std::string& algo):
@@ -119,7 +125,7 @@ _algo(algo)
     _mdctx = EVP_MD_CTX_create();
     if(EVP_DigestInit_ex(_mdctx, type, nullptr)==0)
     {
-        throw std::runtime_error("Cannot initialize digest");
+        throw digest_exception("Cannot initialize digest");
     }
 }
 
@@ -128,7 +134,7 @@ evp_md::evp_md(const evp_md& other)
     _mdctx = EVP_MD_CTX_create();
     if(EVP_MD_CTX_copy_ex(_mdctx, other._mdctx)==0)
     {
-        throw std::runtime_error("Cannot copy digest");
+        throw digest_exception("Cannot copy digest");
     }
 }
 
@@ -154,7 +160,7 @@ message_digest& evp_md::update(const void* data, size_t size)
 {
     if(EVP_DigestUpdate(_mdctx, data, size)==0)
     {
-        throw std::runtime_error("Cannot update digest");
+        throw digest_exception("Cannot update digest");
     }
     return *this;
 }
@@ -166,7 +172,7 @@ std::vector<uint8_t /*std::byte*/> evp_md::digest()
 
     if(EVP_DigestFinal_ex(_mdctx, md_value, &md_len)==0)
     {
-        throw std::runtime_error("Cannot update digest");
+        throw digest_exception("Cannot update digest");
     }
     return std::vector<uint8_t /*std::byte*/>(md_value, md_value+md_len);
 }
