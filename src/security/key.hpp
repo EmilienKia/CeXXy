@@ -152,7 +152,7 @@ public:
     virtual cxy::math::big_integer private_exponent() const =0;
 };
 
-class rsa_private_crt_key : public rsa_private_key
+class rsa_private_crt_key : public virtual rsa_private_key
 {
 public:
     virtual cxy::math::big_integer crt_coefficient() const =0;
@@ -163,7 +163,7 @@ public:
     virtual cxy::math::big_integer public_exponent() const =0;
 };
 
-class rsa_multiprime_private_crt_key : public rsa_private_crt_key
+class rsa_multiprime_private_crt_key : public virtual rsa_private_crt_key
 {
 public:
     virtual std::vector<cxy::math::big_integer> other_prime_info() const =0;
