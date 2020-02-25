@@ -77,9 +77,146 @@ BIGNUM* bi2bn(const cxy::math::big_integer& bi, BIGNUM* bn)
 }
 
 
+//
+// EVP Message Digest
+//
+
+
+
+std::map<std::string, std::function<const EVP_MD*()>> evp_md::_evp {
+    {"NULL", EVP_md_null}
+# ifndef OPENSSL_NO_MD2
+    ,{"MD2", EVP_md2}
+# endif
+# ifndef OPENSSL_NO_MD4
+    ,{"MD4", EVP_md4}
+# endif
+# ifndef OPENSSL_NO_MD5
+    ,{"MD5", EVP_md5}
+    ,{"MD5-SHA1", EVP_md5_sha1}
+# endif
+# ifndef OPENSSL_NO_BLAKE2
+    ,{"BLAKE2S", EVP_blake2s256}
+    ,{"BLAKE2B", EVP_blake2b512}
+    ,{"BLAKE2-256", EVP_blake2s256}
+    ,{"BLAKE2-512", EVP_blake2b512}
+# endif
+    ,{"SHA1", EVP_sha1}
+    ,{"SHA2-224", EVP_sha224}, {"SHA-224", EVP_sha224}
+    ,{"SHA2-256", EVP_sha256}, {"SHA-256", EVP_sha256}
+    ,{"SHA2-384", EVP_sha384}, {"SHA-384", EVP_sha384}
+    ,{"SHA2-512", EVP_sha512}, {"SHA-512", EVP_sha512}
+    ,{"SHA2-512-224", EVP_sha512_224}, {"SHA-512-224", EVP_sha512_224}
+    ,{"SHA2-512-256", EVP_sha512_256}, {"SHA-512-256", EVP_sha512_256}
+    ,{"SHA3-224", EVP_sha3_224}
+    ,{"SHA3-256", EVP_sha3_256}
+    ,{"SHA3-384", EVP_sha3_384}
+    ,{"SHA3-512", EVP_sha3_512}
+    ,{"SHAKE-128", EVP_shake128}
+    ,{"SHAKE-256", EVP_shake256}
+# ifndef OPENSSL_NO_MDC2
+    ,{"SMDC2", EVP_mdc2}
+# endif
+# ifndef OPENSSL_NO_RMD160
+    ,{"RIPEMD-160", EVP_ripemd160}
+# endif
+# ifndef OPENSSL_NO_WHIRLPOOL
+    ,{"WHIRLPOOL", EVP_whirlpool}
+# endif
+# ifndef OPENSSL_NO_SM3
+    ,{"SM3", EVP_sm3}
+#endif
+};
+
+const EVP_MD * evp_md::get_EVP_MD(const std::string& algorithm)
+{
+    auto it = _evp.find(algorithm);
+    if (it!=_evp.end()) {
+        return it->second();
+    } else {
+        return nullptr;
+    }
+}
+
+
+std::shared_ptr<evp_md> evp_md::get(const std::string& algorithm)
+{
+    const EVP_MD * md = get_EVP_MD(algorithm);
+    if (md!=nullptr) {
+        return std::make_shared<evp_md>(md, algorithm);
+    } else {
+        throw no_such_algorithm_exception(algorithm + " is not supported");
+    }
+}
+
+evp_md::evp_md(const EVP_MD *type, const std::string& algo):
+_algo(algo)
+{
+    _mdctx = EVP_MD_CTX_create();
+    if(EVP_DigestInit_ex(_mdctx, type, nullptr)==0)
+    {
+        throw digest_exception("Cannot initialize digest");
+    }
+}
+
+evp_md::evp_md(const evp_md& other)
+{
+    _mdctx = EVP_MD_CTX_create();
+    if(EVP_MD_CTX_copy_ex(_mdctx, other._mdctx)==0)
+    {
+        throw digest_exception("Cannot copy digest");
+    }
+}
+
+evp_md::~evp_md()
+{
+    if(_mdctx!=nullptr) {
+        EVP_MD_CTX_free(_mdctx);
+        _mdctx = nullptr;
+    }
+}
+
+std::string evp_md::algorithm() const
+{
+    return _algo;
+}
+
+uint16_t evp_md::digest_length() const
+{
+    return EVP_MD_CTX_size(_mdctx);
+}
+
+message_digest& evp_md::update(const void* data, size_t size)
+{
+    if(EVP_DigestUpdate(_mdctx, data, size)==0)
+    {
+        throw digest_exception("Cannot update digest");
+    }
+    return *this;
+}
+
+std::vector<uint8_t /*std::byte*/> evp_md::digest()
+{
+    unsigned char md_value[EVP_MAX_MD_SIZE];
+    unsigned int md_len;
+
+    if(EVP_DigestFinal_ex(_mdctx, md_value, &md_len)==0)
+    {
+        throw digest_exception("Cannot update digest");
+    }
+    return std::vector<uint8_t /*std::byte*/>(md_value, md_value+md_len);
+}
+
+message_digest& evp_md::reset()
+{
+    EVP_MD_CTX_reset(_mdctx);
+    return *this;
+}
+
+
 
 //
-// EVP
+// EVP symmetric cipher
 //
 
 
@@ -282,7 +419,7 @@ std::vector<uint8_t/*std::byte*/> evp_cipher::finalize(const void* data, size_t 
 // EVP PKEY
 //
 
-std::shared_ptr<cipher> evp_pkey_cipher::get(const std::string& algorithm, const std::string& padding, const cxy::security::key* key, bool encrypt) {
+std::shared_ptr<cipher> evp_pkey_cipher::get(const std::string& algorithm, const std::string& padding, const std::string& md, const cxy::security::key* key, bool encrypt) {
     // Assume a key is present
     if(key == nullptr) {
         return nullptr; // A key is mandatory
@@ -319,13 +456,13 @@ std::shared_ptr<cipher> evp_pkey_cipher::get(const std::string& algorithm, const
             throw no_such_padding_exception(stm.str());
         }
 
-        return std::dynamic_pointer_cast<cipher>(std::make_shared<evp_pkey_cipher>(pkey, padmode, encrypt));
+        return std::dynamic_pointer_cast<cipher>(std::make_shared<evp_pkey_cipher>(pkey, padmode, md, encrypt));
     }
 
     throw no_such_algorithm_exception();
 }
 
-evp_pkey_cipher::evp_pkey_cipher(EVP_PKEY *pkey, EVP_PKEY_PADDING_MODE padding, bool enc) : _encode(enc) {
+evp_pkey_cipher::evp_pkey_cipher(EVP_PKEY *pkey, EVP_PKEY_PADDING_MODE padding, const std::string& md, bool enc) : _encode(enc) {
     _ctx = EVP_PKEY_CTX_new(pkey, nullptr);
     if(!_ctx) {
         throw invalid_key_exception(/*...*/);
@@ -349,6 +486,16 @@ evp_pkey_cipher::evp_pkey_cipher(EVP_PKEY *pkey, EVP_PKEY_PADDING_MODE padding, 
         case RSA_PAD_OAEP:
             if(EVP_PKEY_CTX_set_rsa_padding(_ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
                 throw invalid_key_exception(/*...*/);
+            }
+            if(!md.empty()) {
+                const EVP_MD * evpmd = evp_md::get_EVP_MD(md);
+                if(evpmd!=nullptr) {
+                    if(EVP_PKEY_CTX_set_rsa_oaep_md(_ctx, evpmd) <= 0) {
+                        throw invalid_key_exception(/*...*/);
+                    }
+                } else {
+                    throw no_such_padding_exception(std::string("Unsupported OAEP MD algorithm ") + md);
+                }
             }
             break;
     }

@@ -24,10 +24,15 @@
 
 #include "key.hpp"
 #include "cipher.hpp"
+#include "message-digest.hpp"
 
 #include <openssl/bn.h>
 #include <openssl/evp.h>
+#include <openssl/evp.h>
 #include <openssl/rsa.h>
+
+#include <map>
+#include <functional>
 
 
 namespace cxy
@@ -40,6 +45,41 @@ namespace openssl
 cxy::math::big_integer bn2bi(const BIGNUM *bn);
 
 BIGNUM* bi2bn(const cxy::math::big_integer& bi, BIGNUM* bn = nullptr);
+
+//
+// EVP Message Digest
+//
+
+class evp_md : public message_digest
+{
+    // TODO Add a better way to handle algorithm name.
+protected:
+    EVP_MD_CTX* _mdctx;
+    std::string _algo;
+
+public:
+
+    static std::map<std::string, std::function<const EVP_MD*()>> _evp;
+    static const EVP_MD * get_EVP_MD(const std::string& algorithm);
+
+    static std::shared_ptr<evp_md> get(const std::string& algorithm);
+
+    evp_md() = delete;
+    evp_md(evp_md&& other) = default;
+
+    evp_md(const EVP_MD *type, const std::string& algo);
+    evp_md(const evp_md& other);
+    virtual ~evp_md();
+
+    virtual std::string algorithm() const override;
+    virtual uint16_t digest_length() const override;
+
+    virtual message_digest& update(const void* data, size_t size) override;
+    virtual std::vector<uint8_t /*std::byte*/>  digest() override;
+    virtual message_digest& reset() override;
+};
+
+
 
 //
 // EVP based symmetric cipher support
@@ -80,9 +120,9 @@ private:
     bool _encode;
 
 public:
-    static std::shared_ptr<cipher> get(const std::string& algorithm, const std::string& padding, const cxy::security::key* key, bool encrypt);
+    static std::shared_ptr<cipher> get(const std::string& algorithm, const std::string& padding, const std::string& md, const cxy::security::key* key, bool encrypt);
 
-    evp_pkey_cipher(EVP_PKEY *pkey, EVP_PKEY_PADDING_MODE padding, bool enc);
+    evp_pkey_cipher(EVP_PKEY *pkey, EVP_PKEY_PADDING_MODE padding, const std::string& md, bool enc);
     virtual ~evp_pkey_cipher();
 
     virtual cipher& update_aad(const void* data, size_t sz) override;

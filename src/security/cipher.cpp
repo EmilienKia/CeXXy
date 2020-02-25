@@ -67,6 +67,12 @@ cipher_builder& cipher_builder::padding(const std::string& padding)
     return *this;
 }
 
+cipher_builder& cipher_builder::md(const std::string& md)
+{
+    _md = md;
+    return *this;
+}
+
 cipher_builder& cipher_builder::key(cxy::security::key& key)
 {
     _key = &key;
@@ -95,6 +101,11 @@ const std::string& cipher_builder::padding() const
     return _pad;
 }
 
+const std::string& cipher_builder::md() const
+{
+    return _md;
+}
+
 const cxy::security::key* cipher_builder::key() const
 {
     return _key;
@@ -112,7 +123,7 @@ std::shared_ptr<cipher> cipher_builder::encrypt()
     ciph = openssl::evp_cipher::get(_algo, _mode, _pad, _key, _iv, true);
     if(ciph)
         return ciph;
-    ciph = openssl::evp_pkey_cipher::get(_algo, _pad, _key, true);
+    ciph = openssl::evp_pkey_cipher::get(_algo, _pad, _md, _key, true);
     return ciph;
 }
 
@@ -123,7 +134,7 @@ std::shared_ptr<cipher> cipher_builder::decrypt()
     ciph = openssl::evp_cipher::get(_algo, _mode, _pad, _key, _iv, false);
     if(ciph)
         return ciph;
-    ciph = openssl::evp_pkey_cipher::get(_algo, _pad, _key, false);
+    ciph = openssl::evp_pkey_cipher::get(_algo, _pad, _md, _key, false);
     return ciph;
 }
 

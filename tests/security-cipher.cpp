@@ -102,6 +102,18 @@ TEST_CASE( "RSA sipher test", "[cipher][RSA]" ) {
         dec = cxy::security::cipher_builder().key(*priv).padding(CXY_CIPHER_PKCS1_OAEP_PADDING).decrypt();
     }
 
+    SECTION( "OAEP with SHA1 padding" ) {
+        std::generate_n(std::back_inserter(sample), 64 , [&](){return uniform_dist(e1);});
+        enc = cxy::security::cipher_builder().key(*pub).padding(CXY_CIPHER_PKCS1_OAEP_PADDING).md("SHA1").encrypt();
+        dec = cxy::security::cipher_builder().key(*priv).padding(CXY_CIPHER_PKCS1_OAEP_PADDING).md("SHA1").decrypt();
+    }
+
+    SECTION( "OAEP with SHA-256 padding" ) {
+        std::generate_n(std::back_inserter(sample), 48 , [&](){return uniform_dist(e1);});
+        enc = cxy::security::cipher_builder().key(*pub).padding(CXY_CIPHER_PKCS1_OAEP_PADDING).md("SHA-256").encrypt();
+        dec = cxy::security::cipher_builder().key(*priv).padding(CXY_CIPHER_PKCS1_OAEP_PADDING).md("SHA-256").decrypt();
+    }
+
 
     REQUIRE( enc != nullptr );
     REQUIRE( dec != nullptr );

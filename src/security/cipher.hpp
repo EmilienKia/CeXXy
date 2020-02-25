@@ -89,12 +89,14 @@ public:
     cipher_builder& algorithm(const std::string& algo);
     cipher_builder& mode(const std::string& mode);
     cipher_builder& padding(const std::string& padding);
+    cipher_builder& md(const std::string& md);
     cipher_builder& key(cxy::security::key& key);
     cipher_builder& initial_vector(const std::vector<uint8_t/*std::byte*/> iv);
 
     const std::string& algorithm() const;
     const std::string& mode() const;
     const std::string& padding() const;
+    const std::string& md() const;
     const cxy::security::key* key() const;
     const std::vector<uint8_t/*std::byste*/>& initial_vector() const;
 
@@ -102,7 +104,7 @@ public:
     std::shared_ptr<cipher> decrypt();
 
 private:
-    std::string _algo, _mode, _pad;
+    std::string _algo, _mode, _pad, _md;
     const cxy::security::key* _key;
     std::vector<uint8_t/*std::byste*/> _iv;
 };
