@@ -215,6 +215,7 @@ cipher& evp_cipher::update_aad(const void* data, size_t sz)
     if(!EVP_CipherUpdate(_ctx, nullptr, nullptr, (const unsigned char*)data, sz)) {
         throw invalid_key_exception("Error while streaming aad data to cipher.");
     }
+    return *this;
 }
 
 std::vector<uint8_t/*std::byte*/> evp_cipher::update(const void* data, size_t sz)
