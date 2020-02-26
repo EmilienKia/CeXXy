@@ -224,60 +224,130 @@ message_digest& evp_md::reset()
 struct symetric_cipher_desc {
     std::string name;
     std::string mode;
-    int key_size;
-    int iv_size;
+    int key_size; // in bytes, -1 means no fixed size
+    int iv_size; // iv size in bytes (= block size), 0 means no iv, -1 means no fixed size
     std::function<const EVP_CIPHER*()> fct;
 };
 
 symetric_cipher_desc _sym_ciphers [] = {
-    {"AES", "CBC", 16, 16, EVP_aes_128_cbc },
-    {"AES_128", "CBC", 16, 16, EVP_aes_128_cbc },
-    {"AES", "CBC", 24, 16, EVP_aes_192_cbc },
-    {"AES_192", "CBC", 24, 16, EVP_aes_192_cbc },
-    {"AES", "CBC", 32, 16, EVP_aes_256_cbc },
-    {"AES_256", "CBC", 32, 16, EVP_aes_256_cbc },
-    {"AES", "CFB", 16, 16, EVP_aes_128_cfb },
-    {"AES_128", "CFB", 16, 16, EVP_aes_128_cfb },
-    {"AES", "CFB", 24, 16, EVP_aes_192_cfb },
-    {"AES_192", "CFB", 24, 16, EVP_aes_192_cfb },
-    {"AES", "CFB", 32, 16, EVP_aes_256_cfb },
-    {"AES_256", "CFB", 32, 16, EVP_aes_256_cfb },
-    {"AES", "CFB1", 16, 16, EVP_aes_128_cfb1 },
-    {"AES_128", "CFB1", 16, 16, EVP_aes_128_cfb1 },
-    {"AES", "CFB1", 24, 16, EVP_aes_192_cfb1 },
-    {"AES_192", "CFB1", 24, 16, EVP_aes_192_cfb1 },
-    {"AES", "CFB1", 32, 16, EVP_aes_256_cfb1 },
-    {"AES_256", "CFB1", 32, 16, EVP_aes_256_cfb1 },
-    {"AES", "CFB8", 16, 16, EVP_aes_128_cfb8 },
-    {"AES_128", "CFB8", 16, 16, EVP_aes_128_cfb8 },
-    {"AES", "CFB8", 24, 16, EVP_aes_192_cfb8 },
-    {"AES_192", "CFB8", 24, 16, EVP_aes_192_cfb8 },
-    {"AES", "CFB8", 32, 16, EVP_aes_256_cfb8 },
-    {"AES_256", "CFB8", 32, 16, EVP_aes_256_cfb8 },
+    {"AES", "CBC",    16, 16, EVP_aes_128_cbc },
+    {"AES", "CBC",    24, 16, EVP_aes_192_cbc },
+    {"AES", "CBC",    32, 16, EVP_aes_256_cbc },
+    {"AES", "CFB",    16, 16, EVP_aes_128_cfb },
+    {"AES", "CFB",    24, 16, EVP_aes_192_cfb },
+    {"AES", "CFB",    32, 16, EVP_aes_256_cfb },
+    {"AES", "CFB1",   16, 16, EVP_aes_128_cfb1 },
+    {"AES", "CFB1",   24, 16, EVP_aes_192_cfb1 },
+    {"AES", "CFB1",   32, 16, EVP_aes_256_cfb1 },
+    {"AES", "CFB8",   16, 16, EVP_aes_128_cfb8 },
+    {"AES", "CFB8",   24, 16, EVP_aes_192_cfb8 },
+    {"AES", "CFB8",   32, 16, EVP_aes_256_cfb8 },
     {"AES", "CFB128", 16, 16, EVP_aes_128_cfb128 },
-    {"AES_128", "CFB128", 16, 16, EVP_aes_128_cfb128 },
     {"AES", "CFB128", 24, 16, EVP_aes_192_cfb128 },
-    {"AES_192", "CFB128", 24, 16, EVP_aes_192_cfb128 },
     {"AES", "CFB128", 32, 16, EVP_aes_256_cfb128 },
-    {"AES_256", "CFB128", 32, 16, EVP_aes_256_cfb128 },
-    {"AES", "CTR", 16, 16, EVP_aes_128_ctr },
-    {"AES_128", "CTR", 16, 16, EVP_aes_128_ctr },
-    {"AES", "CTR", 24, 16, EVP_aes_192_ctr },
-    {"AES_192", "CTR", 24, 16, EVP_aes_192_ctr },
-    {"AES", "CTR", 32, 16, EVP_aes_256_ctr },
-    {"AES_256", "CTR", 32, 16, EVP_aes_256_ctr },
-    {"AES", "ECB", 16,  0, EVP_aes_128_ecb },
-    {"AES_128", "ECB",  0, 16, EVP_aes_128_ecb },
-    {"AES", "ECB", 24,  0, EVP_aes_192_ecb },
-    {"AES_192", "ECB",  0, 16, EVP_aes_192_ecb },
-    {"AES", "ECB", 32,  0, EVP_aes_256_ecb },
-    {"AES_256", "ECB",  0, 16, EVP_aes_256_ecb },
-    {"AES", "OFB", 16, 16, EVP_aes_128_ofb },
-    {"AES_128", "OFB", 16, 16, EVP_aes_128_ofb },
-    {"AES", "OFB", 24, 16, EVP_aes_192_ofb },
-    {"AES_192", "OFB", 24, 16, EVP_aes_192_ofb },
-    {"AES", "OFB", 32, 16, EVP_aes_256_ofb },
-    {"AES_256", "OFB", 32, 16, EVP_aes_256_ofb }
+    {"AES", "CTR",    16, 16, EVP_aes_128_ctr },
+    {"AES", "CTR",    24, 16, EVP_aes_192_ctr },
+    {"AES", "CTR",    32, 16, EVP_aes_256_ctr },
+    {"AES", "ECB",    16,  0, EVP_aes_128_ecb },
+    {"AES", "ECB",    24,  0, EVP_aes_192_ecb },
+    {"AES", "ECB",    32,  0, EVP_aes_256_ecb },
+    {"AES", "OFB",    16, 16, EVP_aes_128_ofb },
+    {"AES", "OFB",    24, 16, EVP_aes_192_ofb },
+    {"AES", "OFB",    32, 16, EVP_aes_256_ofb },
+
+#ifndef OPENSSL_NO_ARIA
+    {"ARIA", "CBC",    16, 16, EVP_aria_128_cbc},
+    {"ARIA", "CBC",    24, 16, EVP_aria_192_cbc},
+    {"ARIA", "CBC",    32, 16, EVP_aria_256_cbc},
+    {"ARIA", "CFB",    16, 16, EVP_aria_128_cfb},
+    {"ARIA", "CFB",    24, 16, EVP_aria_192_cfb},
+    {"ARIA", "CFB",    32, 16, EVP_aria_256_cfb},
+    {"ARIA", "CFB1",   16, 16, EVP_aria_128_cfb1},
+    {"ARIA", "CFB1",   24, 16, EVP_aria_192_cfb1},
+    {"ARIA", "CFB1",   32, 16, EVP_aria_256_cfb1},
+    {"ARIA", "CFB8",   16, 16, EVP_aria_128_cfb8},
+    {"ARIA", "CFB8",   24, 16, EVP_aria_192_cfb8},
+    {"ARIA", "CFB8",   32, 16, EVP_aria_256_cfb8},
+    {"ARIA", "CFB128", 16, 16, EVP_aria_128_cfb128},
+    {"ARIA", "CFB128", 24, 16, EVP_aria_192_cfb128},
+    {"ARIA", "CFB128", 32, 16, EVP_aria_256_cfb128},
+    {"ARIA", "CTR",    16, 16, EVP_aria_128_ctr},
+    {"ARIA", "CTR",    24, 16, EVP_aria_192_ctr},
+    {"ARIA", "CTR",    32, 16, EVP_aria_256_ctr},
+    {"ARIA", "ECB",    16,  0, EVP_aria_128_ecb},
+    {"ARIA", "ECB",    24,  0, EVP_aria_192_ecb},
+    {"ARIA", "ECB",    32,  0, EVP_aria_256_ecb},
+    {"ARIA", "OFB",    16, 16, EVP_aria_128_ofb},
+    {"ARIA", "OFB",    24, 16, EVP_aria_192_ofb},
+    {"ARIA", "OFB",    32, 16, EVP_aria_256_ofb},
+#endif // OPENSSL_NO_ARIA
+
+#ifndef OPENSSL_NO_BF
+    {"Blowfish", "CBC",   -1, 8, EVP_bf_cbc},
+    {"Blowfish", "CFB",   -1, 8, EVP_bf_cfb},
+    {"Blowfish", "CFB64", -1, 8, EVP_bf_cfb64},
+    {"Blowfish", "ECB",   -1, 0, EVP_bf_ecb},
+    {"Blowfish", "OFB",   -1, 8, EVP_bf_ofb},
+#endif // OPENSSL_NO_ARIA
+
+#ifndef OPENSSL_NO_CAMELLIA
+    {"Camellia", "CBC",    16, 16, EVP_camellia_128_cbc},
+    {"Camellia", "CBC",    24, 16, EVP_camellia_192_cbc},
+    {"Camellia", "CBC",    32, 16, EVP_camellia_256_cbc},
+    {"Camellia", "CFB",    16, 16, EVP_camellia_128_cfb},
+    {"Camellia", "CFB",    24, 16, EVP_camellia_192_cfb},
+    {"Camellia", "CFB",    32, 16, EVP_camellia_256_cfb},
+    {"Camellia", "CFB1",   16, 16, EVP_camellia_128_cfb1},
+    {"Camellia", "CFB1",   24, 16, EVP_camellia_192_cfb1},
+    {"Camellia", "CFB1",   32, 16, EVP_camellia_256_cfb1},
+    {"Camellia", "CFB8",   16, 16, EVP_camellia_128_cfb8},
+    {"Camellia", "CFB8",   24, 16, EVP_camellia_192_cfb8},
+    {"Camellia", "CFB8",   32, 16, EVP_camellia_256_cfb8},
+    {"Camellia", "CFB128", 16, 16, EVP_camellia_128_cfb128},
+    {"Camellia", "CFB128", 24, 16, EVP_camellia_192_cfb128},
+    {"Camellia", "CFB128", 32, 16, EVP_camellia_256_cfb128},
+    {"Camellia", "CTR",    16, 16, EVP_camellia_128_ctr},
+    {"Camellia", "CTR",    24, 16, EVP_camellia_192_ctr},
+    {"Camellia", "CTR",    32, 16, EVP_camellia_256_ctr},
+    {"Camellia", "ECB",    16,  0, EVP_camellia_128_ecb},
+    {"Camellia", "ECB",    24,  0, EVP_camellia_192_ecb},
+    {"Camellia", "ECB",    32,  0, EVP_camellia_256_ecb},
+    {"Camellia", "OFB",    16, 16, EVP_camellia_128_ofb},
+    {"Camellia", "OFB",    24, 16, EVP_camellia_192_ofb},
+    {"Camellia", "OFB",    32, 16, EVP_camellia_256_ofb},
+#endif // OPENSSL_NO_CAMELLIA
+
+#ifndef OPENSSL_NO_CAST
+    {"Cast5", "CBC",   -1, 8, EVP_bf_cbc},
+    {"Cast5", "CFB",   -1, 8, EVP_bf_cfb},
+    {"Cast5", "CFB64", -1, 8, EVP_bf_cfb64},
+    {"Cast5", "ECB",   -1, 0, EVP_bf_ecb},
+    {"Cast5", "OFB",   -1, 8, EVP_bf_ofb},
+#endif // OPENSSL_NO_CAST
+
+#ifndef OPENSSL_NO_IDEA
+    {"IDEA", "CBC",   16, 8, EVP_idea_cbc},
+    {"IDEA", "CFB",   16, 8, EVP_idea_cfb},
+    {"IDEA", "CFB64", 16, 8, EVP_idea_cfb64},
+    {"IDEA", "ECB",   16, 0, EVP_idea_ecb},
+    {"IDEA", "OFB",   16, 8, EVP_idea_ofb},
+#endif // OPENSSL_NO_IDEA
+
+#ifndef OPENSSL_NO_SM4
+    {"SM4", "CBC",    16, 16, EVP_sm4_cbc},
+    {"SM4", "CFB",    16, 16, EVP_sm4_cfb},
+    {"SM4", "CFB128", 16, 16, EVP_sm4_cfb128},
+    {"SM4", "CTR",    16, 16, EVP_sm4_ctr},
+    {"SM4", "ECB",    16,  0, EVP_sm4_ecb},
+    {"SM4", "OFB",    16, 16, EVP_sm4_ofb},
+#endif // OPENSSL_NO_SM4
+
+#ifndef OPENSSL_NO_CHACHA
+    {"ChaCha20", "", 32, 16, EVP_chacha20},
+#ifndef OPENSSL_NO_POLY1305
+    {"ChaCha20-Poly1305", "", 32, 12, EVP_chacha20_poly1305}, // AEAD
+#endif
+#endif
 
 };
 
@@ -308,22 +378,36 @@ std::shared_ptr<cipher> evp_cipher::get(const std::string& algorithm, const std:
     }
 
     // TODO normalize params
-
+    bool find_algo = false;
+    bool find_mode = false;
     for(auto& cdesc : _sym_ciphers) {
-        if(algorithm==cdesc.name && mode==cdesc.mode && seckey->size()==cdesc.key_size) {
-            auto c = cdesc.fct();
-            int ivsz = EVP_CIPHER_iv_length(c);
-            if(iv.size()==ivsz) {
-                return std::make_shared<evp_cipher>(c, pad, seckey->value().data(), iv.data(), encrypt);
-            } else {
-                std::ostringstream stm;
-                stm << "Bad IV size (" << iv.size() << " / " << ivsz << " expected)";
-                throw invalid_key_exception(stm.str());
+        if(algorithm==cdesc.name) {
+            find_algo = true;
+            if(mode==cdesc.mode) {
+                find_mode = true;
+                if(cdesc.key_size==-1 || seckey->size()==cdesc.key_size) {
+                    auto c = cdesc.fct();
+                    int ivsz = EVP_CIPHER_iv_length(c);
+                    if(iv.size()==ivsz) {
+                        return std::make_shared<evp_cipher>(c, pad, seckey->value().data(), iv.data(), encrypt);
+                    } else {
+                        std::ostringstream stm;
+                        stm << "Bad IV size (" << iv.size() << " / " << ivsz << " expected)";
+                        throw invalid_key_exception(stm.str());
+                    }
+                }
             }
         }
     }
 
-    throw no_such_algorithm_exception("No corresponding cipher.");
+    if (!find_algo) {
+        throw no_such_algorithm_exception("No corresponding cipher.");
+    } else if (!find_mode) {
+        throw no_such_algorithm_exception("No corresponding mode.");
+    } else {
+        throw invalid_key_exception("Key size not supported.");
+    }
+
 }
 
 evp_cipher::evp_cipher(const EVP_CIPHER *type, bool padding, const unsigned char *key, const unsigned char *iv, bool enc)

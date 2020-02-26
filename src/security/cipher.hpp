@@ -26,11 +26,11 @@
 
 //
 // Cipher Padding
-// 
+//
 
 #define CXY_CIPHER_NO_PADDING      "NoPadding"
 
-// Symmetric key (AES) cipher padding 
+// Symmetric key (AES) cipher padding
 #define CXY_CIPHER_PKCS5_PADDING   "PKCS5Padding"
 #define CXY_CIPHER_PKCS7_PADDING   "PKCS7Padding"
 
@@ -47,20 +47,27 @@
 #define CXY_CIPHER_MODE_CFB     "CFB"
 #define CXY_CIPHER_MODE_CFB1    "CFB1"
 #define CXY_CIPHER_MODE_CFB8    "CFB8"
+#define CXY_CIPHER_MODE_CFB64   "CFB64"
 #define CXY_CIPHER_MODE_CFB128  "CFB128"
 #define CXY_CIPHER_MODE_CTR     "CTR"
-#define CXY_CIPHER_MODE_CTS     "CTS"
 #define CXY_CIPHER_MODE_ECB     "ECB"
-#define CXY_CIPHER_MODE_GCM     "GCM"
 #define CXY_CIPHER_MODE_OFB     "OFB"
+#define CXY_CIPHER_MODE_CTS     "CTS"
+#define CXY_CIPHER_MODE_GCM     "GCM"
 
 //
 // Cipher algorithm
 //
 #define CXY_CIPHER_AES       "AES"
-#define CXY_CIPHER_AES_128   "AES_128"
-#define CXY_CIPHER_AES_192   "AES_192"
-#define CXY_CIPHER_AES_256   "AES_256"
+#define CXY_CIPHER_ARIA      "ARIA"
+#define CXY_CIPHER_BLOWFISH  "Blowfish"
+#define CXY_CIPHER_CAMELLIA  "Camellia"
+#define CXY_CIPHER_CAST5     "Cast5"
+#define CXY_CIPHER_IDEA      "IDEA"
+#define CXY_CIPHER_SM4       "SM4"
+#define CXY_CIPHER_CHACHA20  "ChaCha20"
+#define CXY_CIPHER_CHACHA20_POLY1305       "ChaCha20-Poly1305"
+
 #define CXY_CIPHER_RSA       "RSA"
 
 
