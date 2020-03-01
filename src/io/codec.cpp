@@ -249,7 +249,7 @@ void base64_decoding::process(const std::uint8_t* buff, size_t len)
         }
         else
         {
-            if (b < DECODE_TABLE.size()) {
+//            if (b < DECODE_TABLE.size()) {
                 int8_t result = DECODE_TABLE[b];
                 _state = (_state+1) % BYTES_PER_ENCODED_BLOCK;
                 _work = (_work << BITS_PER_ENCODED_BYTE) + result;
@@ -258,7 +258,7 @@ void base64_decoding::process(const std::uint8_t* buff, size_t len)
                     _buffer.push_back((_work >> 8) & MASK_8BITS);
                     _buffer.push_back(_work & MASK_8BITS);
                 }
-            }
+//            }
         }
     }
 
