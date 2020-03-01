@@ -41,7 +41,11 @@ public:
 
 	file_descriptor();
 	file_descriptor(const file_descriptor& fd);
+	file_descriptor(file_descriptor&& fd);
 	~file_descriptor();
+
+	file_descriptor& operator=(const file_descriptor& fd);
+	file_descriptor& operator=(file_descriptor&& fd);
 
 	static file_descriptor in;
 	static file_descriptor out;

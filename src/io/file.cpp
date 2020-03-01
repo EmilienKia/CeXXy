@@ -44,6 +44,12 @@ _file(fd._file)
 {
 }
 
+file_descriptor::file_descriptor(file_descriptor&& fd):
+_file(std::move(fd._file))
+{
+}
+
+
 file_descriptor::file_descriptor(std::FILE* file):
 _file(file, file_descriptor_destructor())
 {
@@ -52,6 +58,16 @@ _file(file, file_descriptor_destructor())
 file_descriptor::~file_descriptor()
 {
 	close();
+}
+
+file_descriptor& file_descriptor::operator=(const file_descriptor& fd) {
+	_file = fd._file;
+	return *this;
+}
+
+file_descriptor& file_descriptor::operator=(file_descriptor&& fd) {
+	_file = std::move(fd._file);
+	return *this;
 }
 
 bool file_descriptor::valid()const
