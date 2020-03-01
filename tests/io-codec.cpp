@@ -26,6 +26,7 @@ void test_input(const std::uint8_t* src, std::size_t srcsz, const std::uint8_t* 
     codec_t codec(&mem);
     io::memory_output_stream res;
     codec.write_to(&res);
+    mem.close();
 
 #if 0 // MANUAL DEBUG ONLY
 std::cout << "Checking encoding '";
@@ -65,6 +66,7 @@ void test_output(const std::uint8_t* src, std::size_t srcsz, const std::uint8_t*
     io::memory_output_stream res;
     codec_t codec(&res);
     mem.write_to(&codec);
+    mem.close();
 
 	REQUIRE( std::equal(tgt, tgt+tgtsz, res.data(), res.data()+res.size()) );
 

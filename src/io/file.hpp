@@ -42,7 +42,7 @@ public:
 	file_descriptor();
 	file_descriptor(const file_descriptor& fd);
 	file_descriptor(file_descriptor&& fd);
-	~file_descriptor();
+	~file_descriptor() = default;
 
 	file_descriptor& operator=(const file_descriptor& fd);
 	file_descriptor& operator=(file_descriptor&& fd);
@@ -68,7 +68,7 @@ class file_input_stream : public input_stream
 public:
 	file_input_stream(const std::string& name) /*throw(file_not_found_exception)*/;
 	file_input_stream(const file_descriptor& fd);
-	virtual ~file_input_stream();
+	virtual ~file_input_stream() = default;
 	virtual void close();
 	virtual int read() /*throw(io_exception)*/;
 	virtual int read(void* ptr, std::size_t sz) /*throw(std::invalid_argument, io_exception)*/;
@@ -85,7 +85,7 @@ class file_output_stream : public output_stream
 public:
 	file_output_stream(const std::string& name, bool append=false) /*throw(file_not_found_exception)*/;
 	file_output_stream(const file_descriptor& fd);
-	virtual ~file_output_stream();
+	virtual ~file_output_stream() = default;
 	virtual void close();
 	virtual void flush() /*throw(io_exception)*/;
 	virtual void write(std::uint8_t byte) /*throw(io_exception)*/;

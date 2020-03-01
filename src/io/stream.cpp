@@ -31,15 +31,9 @@ namespace io
 // Input stream
 //
 
-input_stream::~input_stream()
-{
-    close();
-}
-
 void input_stream::close()
 {
 }
-
 
 std::size_t input_stream::available()const
 {
@@ -115,11 +109,6 @@ void input_stream::write_to(output_stream* outstream, size_t buffsz)
 // Output stream
 //
 
-output_stream::~output_stream()
-{
-    close();
-}
-
 void output_stream::close()
 {
     flush();
@@ -145,10 +134,6 @@ void output_stream::write(const void* ptr, std::size_t sz)
 //
 filter_input_stream::filter_input_stream(input_stream *stream):
 _stream(stream)
-{
-}
-
-filter_input_stream::~filter_input_stream()
 {
 }
 
@@ -195,10 +180,6 @@ std::size_t filter_input_stream::skip(std::size_t sz)
 
 filter_output_stream::filter_output_stream(output_stream *stream):
 _stream(stream)
-{
-}
-
-filter_output_stream::~filter_output_stream()
 {
 }
 
@@ -249,10 +230,6 @@ _pos(0)
         throw std::invalid_argument("cxy::io::memory_input_stream must have non-null memory ptr.");
 }
 
-memory_input_stream::~memory_input_stream()
-{
-}
-
 std::size_t memory_input_stream::available()const
 {
     return _sz > _pos ? _sz - _pos : 0;
@@ -290,17 +267,9 @@ std::size_t memory_input_stream::skip(std::size_t sz)
 //
 // Memory output stream
 //
-memory_output_stream::memory_output_stream()
-{
-}
-
 memory_output_stream::memory_output_stream(std::size_t sz)
 {
     _buffer.reserve(sz);
-}
-
-memory_output_stream::~memory_output_stream()
-{
 }
 
 void memory_output_stream::write(std::uint8_t byte)
@@ -349,19 +318,12 @@ filter_input_stream(stream)
 {
 }
 
-data_input_stream::~data_input_stream()
-{
-}
 
 //
 // Data Output Stream
 //
 data_output_stream::data_output_stream(output_stream *stream):
 filter_output_stream(stream)
-{
-}
-
-data_output_stream::~data_output_stream()
 {
 }
 

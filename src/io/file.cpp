@@ -55,11 +55,6 @@ _file(file, file_descriptor_destructor())
 {
 }
 
-file_descriptor::~file_descriptor()
-{
-	close();
-}
-
 file_descriptor& file_descriptor::operator=(const file_descriptor& fd) {
 	_file = fd._file;
 	return *this;
@@ -105,9 +100,6 @@ _file(fd)
 {
 }
 
-file_input_stream::~file_input_stream()
-{
-}
 
 void file_input_stream::close()
 {
@@ -199,10 +191,6 @@ file_output_stream::file_output_stream(const std::string& name, bool append)
 
 file_output_stream::file_output_stream(const file_descriptor& fd):
 _file(fd)
-{
-}
-
-file_output_stream::~file_output_stream()
 {
 }
 

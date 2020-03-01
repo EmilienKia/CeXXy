@@ -35,7 +35,7 @@ class output_stream;
 class input_stream
 {
 public:
-    virtual ~input_stream();
+    virtual ~input_stream() = default;
     virtual void close();
     virtual std::size_t available()const;
     virtual int read() /*throw(io_exception)*/ = 0;
@@ -44,25 +44,25 @@ public:
 
     virtual void write_to(output_stream* outstream, size_t buffsz = 4096) /*throw(std::invalid_argument, io_exception)*/;
 protected:
-    input_stream(){}
+    input_stream() = default;
 };
 
 class output_stream
 {
 public:
-    virtual ~output_stream();
+    virtual ~output_stream() = default;
     virtual void close();
     virtual void flush() /*throw(io_exception)*/;
     virtual void write(std::uint8_t byte) /*throw(io_exception)*/ = 0;
     virtual void write(const void* ptr, std::size_t sz) /*throw(std::invalid_argument, io_exception)*/;
 protected:
-    output_stream(){}
+    output_stream() = default;
 };
 
 class filter_input_stream : public input_stream
 {
 public:
-    virtual ~filter_input_stream();
+    virtual ~filter_input_stream() = default;
 
     virtual void close();
     virtual std::size_t available()const;
@@ -83,7 +83,7 @@ private:
 class filter_output_stream : public output_stream
 {
 public:
-    virtual ~filter_output_stream();
+    virtual ~filter_output_stream() = default;
     virtual void close();
     virtual void flush() /*throw(io_exception)*/;
     virtual void write(std::uint8_t byte) /*throw(io_exception)*/;
@@ -102,7 +102,7 @@ class memory_input_stream : public input_stream
 {
 public:
     memory_input_stream(const void* ptr, std::size_t sz) /*throw(std::invalid_argument)*/;
-    virtual ~memory_input_stream();
+    virtual ~memory_input_stream() = default;
 
     virtual std::size_t available()const;
     virtual int read() /*throw(io_exception)*/;
@@ -117,9 +117,9 @@ protected:
 class memory_output_stream : public output_stream
 {
 public:
-    memory_output_stream();
+    memory_output_stream() = default;
     memory_output_stream(std::size_t sz);
-    virtual ~memory_output_stream();
+    virtual ~memory_output_stream() = default;
     virtual void write(std::uint8_t byte) /*throw(io_exception)*/;
     virtual void write(const void* ptr, std::size_t sz) /*throw(std::invalid_argument, io_exception)*/;
 
@@ -147,7 +147,7 @@ class data_input_stream : public filter_input_stream
 {
 public:
     data_input_stream(input_stream *stream);
-    virtual ~data_input_stream();
+    virtual ~data_input_stream() = default;
 
     template<typename T> T read() /*throw(io_exception)*/;
 
@@ -171,7 +171,7 @@ class data_output_stream : public filter_output_stream
 {
 public:
     data_output_stream(output_stream *stream);
-    virtual ~data_output_stream();
+    virtual ~data_output_stream() = default;
 
     template<typename T> void write(T val) /*throw(io_exception)*/;
 };
