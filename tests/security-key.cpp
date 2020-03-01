@@ -6,8 +6,6 @@
 
 #include "catch.hpp"
 
-#include "security/key.hpp"
-
 #include "security/openssl.hpp"
 
 #include <openssl/bn.h>

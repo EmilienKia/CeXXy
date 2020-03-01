@@ -1,6 +1,6 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * security/cipher.cpp
+ * security/crypto.cpp
  * Copyright (C) 2019-2020 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
@@ -17,31 +17,42 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.";
  */
 
-#include "cipher.hpp"
-
+#include "crypto.hpp"
 #include "openssl.hpp"
 
-#include <algorithm>
 
 namespace cxy
 {
 namespace security
 {
 
-enum CIPHER_CHAIN_MODE
-{
-    CCMODE_NONE,
-    CCMODE_CBC,
-    CCMODE_CFB,
-    CCMODE_CFB1,
-    CCMODE_CFB8,
-    CCMODE_CTR,
-    CCMODE_CTS,
-    CCMODE_ECB,
-    CCMODE_GCM,
-    CCMODE_OFB,
-};
+//
+// Message digest
+//
 
+std::shared_ptr<message_digest> message_digest::get(const std::string& algorithm)
+{
+    return openssl::evp_md::get(algorithm);
+}
+
+//
+// RSA key pair generation
+//
+
+const cxy::math::big_integer rsa_key_pair_generator::F0{3ul};
+
+const cxy::math::big_integer rsa_key_pair_generator::F4{65537ul};
+
+std::string rsa_key_pair_generator::algorithm() const {
+    return "RSA";
+}
+
+std::shared_ptr<rsa_key_pair_generator> rsa_key_pair::generator()
+{
+    return std::dynamic_pointer_cast<rsa_key_pair_generator>(
+        std::make_shared<openssl::ossl_rsa_key_pair_generator>()
+    );
+}
 
 
 //
@@ -137,6 +148,7 @@ std::shared_ptr<cipher> cipher_builder::decrypt()
     ciph = openssl::evp_pkey_cipher::get(_algo, _pad, _md, _key, false);
     return ciph;
 }
+
 
 
 }} // namespace cxy::security

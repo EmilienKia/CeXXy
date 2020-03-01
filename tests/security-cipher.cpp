@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <random>
 
-#include "security/cipher.hpp"
+#include "security/crypto.hpp"
 
 
 TEST_CASE( "AES test", "[cipher][AES]" ) {

@@ -6,7 +6,7 @@
 
 #include "catch.hpp"
 
-#include "security/message-digest.hpp"
+#include "security/crypto.hpp"
 
 
 TEST_CASE( "Empty SHA1", "[md]" ) {

@@ -20,11 +20,9 @@
 #ifndef _SECURITY_OPENSSL_HPP_
 #define _SECURITY_OPENSSL_HPP_
 
-#include "../math/big-integer.hpp"
 
-#include "key.hpp"
-#include "cipher.hpp"
-#include "message-digest.hpp"
+#include "crypto.hpp"
+
 
 #include <openssl/bn.h>
 #include <openssl/evp.h>

@@ -1,6 +1,6 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * security/key.hpp
+ * security/crypto.hpp
  * Copyright (C) 2019-2020 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
@@ -17,15 +17,66 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.";
  */
 
-#ifndef _SECURITY_KEY_HPP_
-#define _SECURITY_KEY_HPP_
+#ifndef _SECURITY_CRYPTO_HPP_
+#define _SECURITY_CRYPTO_HPP_
 
 #include <memory>
 #include <vector>
 #include <initializer_list>
 
 #include "../math/big-integer.hpp"
+#include "exceptions.hpp"
 
+
+//
+// Cipher Padding
+//
+
+#define CXY_CIPHER_NO_PADDING      "NoPadding"
+
+// Symmetric key (AES) cipher padding
+#define CXY_CIPHER_PKCS5_PADDING   "PKCS5Padding"
+#define CXY_CIPHER_PKCS7_PADDING   "PKCS7Padding"
+
+// RSA cipher padding
+#define CXY_CIPHER_PKCS1_PADDING        "PKCS1Padding"
+#define CXY_CIPHER_PKCS1_OAEP_PADDING    "OAEPPadding"
+
+
+//
+// Cipher mode
+//
+#define CXY_CIPHER_MODE_NONE    "NONE"
+#define CXY_CIPHER_MODE_CBC     "CBC"
+#define CXY_CIPHER_MODE_CFB     "CFB"
+#define CXY_CIPHER_MODE_CFB1    "CFB1"
+#define CXY_CIPHER_MODE_CFB8    "CFB8"
+#define CXY_CIPHER_MODE_CFB64   "CFB64"
+#define CXY_CIPHER_MODE_CFB128  "CFB128"
+#define CXY_CIPHER_MODE_CTR     "CTR"
+#define CXY_CIPHER_MODE_ECB     "ECB"
+#define CXY_CIPHER_MODE_OFB     "OFB"
+#define CXY_CIPHER_MODE_CTS     "CTS"
+#define CXY_CIPHER_MODE_GCM     "GCM"
+
+//
+// Cipher algorithm
+//
+#define CXY_CIPHER_AES       "AES"
+#define CXY_CIPHER_ARIA      "ARIA"
+#define CXY_CIPHER_BLOWFISH  "Blowfish"
+#define CXY_CIPHER_CAMELLIA  "Camellia"
+#define CXY_CIPHER_CAST5     "Cast5"
+#define CXY_CIPHER_IDEA      "IDEA"
+#define CXY_CIPHER_SM4       "SM4"
+#define CXY_CIPHER_CHACHA20  "ChaCha20"
+#define CXY_CIPHER_CHACHA20_POLY1305       "ChaCha20-Poly1305"
+
+#define CXY_CIPHER_RSA       "RSA"
+
+//
+// Key types
+//
 #define CXY_KEY_RSA       "RSA"
 
 
@@ -203,5 +254,100 @@ public:
     virtual cxy::math::big_integer public_exponent() const =0;
 };
 
+
+
+
+
+/**
+ * Message digest.
+ */
+class message_digest
+{
+public:
+
+    /**
+     * Look for a message digest with a specific algorithm.
+     * \param algorithm Algorithm name
+     * \return Message digest if available, nullptr otherwise.
+     */
+    static std::shared_ptr<message_digest> get(const std::string& algorithm);
+
+    /**
+     * Return the algorithm name of the current message digest.
+     * \return Algorithm name.
+     */
+    virtual std::string algorithm() const =0;
+
+    /**
+     * Return the length of the current digest, if fixed.
+     * \return Digest size in bytes, 0 if variable.
+     */
+    virtual uint16_t digest_length() const =0;
+
+    /**
+     * Update the current digest computation with specified data.
+     * \param data Pointer to the data to add.
+     * \param size Size of data to add, in bytes.
+     */
+    virtual message_digest& update(const void* data, size_t size) =0;
+
+    // TODO add template inline update methods.
+
+    /**
+     * Finalize the computation of the digest and returns it.
+     * \return The computed digest.
+     */
+    virtual std::vector<uint8_t /*std::byte*/>  digest() =0;
+
+    /**
+     * Reset the digest computation for further use.
+     */
+    virtual message_digest& reset() =0;
+};
+
+
+
+
+
+class cipher
+{
+public:
+    virtual cipher& update_aad(const void* data, size_t sz) =0;
+
+    virtual std::vector<uint8_t/*std::byte*/> update(const void* data, size_t sz) =0;
+
+    virtual std::vector<uint8_t/*std::byte*/> finalize() =0;
+    virtual std::vector<uint8_t/*std::byte*/> finalize(const void* data, size_t sz) =0;
+};
+
+
+class cipher_builder
+{
+public:
+    cipher_builder() = default;
+
+    cipher_builder& algorithm(const std::string& algo);
+    cipher_builder& mode(const std::string& mode);
+    cipher_builder& padding(const std::string& padding);
+    cipher_builder& md(const std::string& md);
+    cipher_builder& key(cxy::security::key& key);
+    cipher_builder& initial_vector(const std::vector<uint8_t/*std::byte*/> iv);
+
+    const std::string& algorithm() const;
+    const std::string& mode() const;
+    const std::string& padding() const;
+    const std::string& md() const;
+    const cxy::security::key* key() const;
+    const std::vector<uint8_t/*std::byste*/>& initial_vector() const;
+
+    std::shared_ptr<cipher> encrypt();
+    std::shared_ptr<cipher> decrypt();
+
+private:
+    std::string _algo, _mode, _pad, _md;
+    const cxy::security::key* _key;
+    std::vector<uint8_t/*std::byste*/> _iv;
+};
+
 }} // namespace cxy::security
-#endif // _SECURITY_KEY_HPP_
+#endif // _SECURITY_CIPHER_HPP_
