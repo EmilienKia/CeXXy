@@ -266,13 +266,6 @@ class message_digest
 public:
 
     /**
-     * Look for a message digest with a specific algorithm.
-     * \param algorithm Algorithm name
-     * \return Message digest if available, nullptr otherwise.
-     */
-    static std::shared_ptr<message_digest> get(const std::string& algorithm);
-
-    /**
      * Return the algorithm name of the current message digest.
      * \return Algorithm name.
      */
@@ -342,6 +335,7 @@ public:
 
     std::shared_ptr<cipher> encrypt();
     std::shared_ptr<cipher> decrypt();
+    std::shared_ptr<message_digest> digest();
 
 private:
     std::string _algo, _mode, _pad, _md;

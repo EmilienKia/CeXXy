@@ -26,14 +26,6 @@ namespace cxy
 namespace security
 {
 
-//
-// Message digest
-//
-
-std::shared_ptr<message_digest> message_digest::get(const std::string& algorithm)
-{
-    return openssl::evp_md::get(algorithm);
-}
 
 //
 // RSA key pair generation
@@ -149,6 +141,10 @@ std::shared_ptr<cipher> cipher_builder::decrypt()
     return ciph;
 }
 
+std::shared_ptr<message_digest> cipher_builder::digest()
+{
+    return openssl::evp_md::get(_md);
+}
 
 
 }} // namespace cxy::security

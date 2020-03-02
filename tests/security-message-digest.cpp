@@ -12,7 +12,7 @@
 TEST_CASE( "Empty SHA1", "[md]" ) {
     using namespace cxy;
 
-    auto md = security::message_digest::get("SHA1");
+    auto md = security::cipher_builder().md("SHA1").digest();
 
     REQUIRE( md != nullptr );
     REQUIRE( md->digest_length() == 20 );
@@ -34,7 +34,7 @@ TEST_CASE( "Empty SHA1", "[md]" ) {
 TEST_CASE( "Simple SHA1", "[md]" ) {
     using namespace cxy;
 
-    auto md = security::message_digest::get("SHA1");
+    auto md = security::cipher_builder().md("SHA1").digest();
 
     auto res = md->update("The quick brown fox jumps", 25).update(" over the lazy dog", 18).digest();
 
@@ -50,5 +50,5 @@ TEST_CASE( "Simple SHA1", "[md]" ) {
 TEST_CASE( "Bad digest name", "[md]" ) {
     using namespace cxy;
 
-    REQUIRE_THROWS_AS(security::message_digest::get("Titi"), security::no_such_algorithm_exception);
+    REQUIRE_THROWS_AS(security::cipher_builder().md("Titi").digest(), security::no_such_algorithm_exception);
 }
