@@ -214,12 +214,162 @@ message_digest& evp_md::reset()
 }
 
 
+//
+// EVP Signature
+//
+
+std::shared_ptr<evp_sign> evp_sign::get(const cipher_builder& bldr)
+{
+    const private_key* key = dynamic_cast<const private_key*>(bldr.key());
+    if(bldr.key()==nullptr || key==nullptr) {
+        throw invalid_key_exception("A private key must be specified.");
+    }
+
+    // Could be empty if key alogirthm support it,
+    // Typically RSA with no padding or CMAC, Poly1305 and SipHash
+    // See https://www.openssl.org/docs/man1.1.1/man3/EVP_DigestSignInit.html
+    const EVP_MD *md = nullptr;
+    if(!bldr.md().empty()) {
+        md = evp_md::get_EVP_MD(bldr.md());
+        if(md==nullptr) {
+            throw no_such_algorithm_exception(bldr.md() + " is not supported");
+        }
+    }
+
+    EVP_PKEY* pkey = evp_pkey_cipher::get(bldr.algorithm(), key);
+
+    // TODO set padding data
+
+    return std::make_shared<evp_sign>(md, bldr.algorithm(), key, pkey);
+}
+
+evp_sign::evp_sign(const EVP_MD *md, const std::string& algo, const private_key* key, EVP_PKEY* pkey):
+_algo(algo),
+_pkey(key)
+{
+    _mdctx = EVP_MD_CTX_create();
+    int res = EVP_DigestSignInit(_mdctx, &_pkctx, md, nullptr, pkey);
+    if (res == -2) {
+        throw invalid_key_exception("Signing operation is not supported by the key algorithm.");
+    } else if (res <= 0) {
+        throw invalid_key_exception("Error in signature initialization.");
+    }
+
+// TODO : conditionnalize that:
+//    if(EVP_PKEY_CTX_set_rsa_padding(_pkctx, RSA_PKCS1_PADDING) <= 0) {
+//        throw invalid_key_exception(/*...*/);
+//    }
+}
+
+evp_sign::~evp_sign()
+{
+    if(_mdctx!=nullptr) {
+        EVP_MD_CTX_free(_mdctx);
+        _mdctx = nullptr;
+    }
+}
+
+signature& evp_sign::update(const void* data, size_t size)
+{
+    if(EVP_DigestSignUpdate(_mdctx, data, size)==0) {
+        throw digest_exception("Cannot update signature");
+    }
+    return *this;
+}
+
+std::vector<uint8_t /*std::byte*/> evp_sign::sign()
+{
+    size_t len;
+    if(EVP_DigestSignFinal(_mdctx, nullptr, &len)<=0) {
+        throw digest_exception("Problem while getting signature size.");
+    }
+    std::vector<uint8_t> buff(len);
+    if(EVP_DigestSignFinal(_mdctx, (unsigned char *)buff.data(), &len)<=0) {
+        throw digest_exception("Problem while computing signature.");
+    }
+    buff.resize(len);
+    return buff;
+}
+
+//
+// EVP Verifier
+//
+
+
+std::shared_ptr<evp_verify> evp_verify::get(const cipher_builder& bldr)
+{
+    const public_key* key = dynamic_cast<const public_key*>(bldr.key());
+    if(bldr.key()==nullptr || key==nullptr) {
+        throw invalid_key_exception("A public key must be specified.");
+    }
+
+    // Could be empty if key alogirthm support it,
+    // Typically RSA with no padding or CMAC, Poly1305 and SipHash
+    // See https://www.openssl.org/docs/man1.1.1/man3/EVP_DigestSignInit.html
+    const EVP_MD *md = nullptr;
+    if(!bldr.md().empty()) {
+        md = evp_md::get_EVP_MD(bldr.md());
+        if(md==nullptr) {
+            throw no_such_algorithm_exception(bldr.md() + " is not supported");
+        }
+    }
+
+    EVP_PKEY* pkey = evp_pkey_cipher::get(bldr.algorithm(), key);
+
+    // TODO set padding data
+
+    return std::make_shared<evp_verify>(md, bldr.algorithm(), key, pkey);
+}
+
+evp_verify::evp_verify(const EVP_MD *md, const std::string& algo, const public_key* key, EVP_PKEY* pkey):
+_algo(algo),
+_pkey(key)
+{
+    _mdctx = EVP_MD_CTX_create();
+    int res = EVP_DigestVerifyInit(_mdctx, &_pkctx, md, nullptr, pkey);
+    if (res == -2) {
+        throw invalid_key_exception("Verifying operation is not supported by the key algorithm.");
+    } else if (res <= 0) {
+        throw invalid_key_exception("Error in verifier initialization.");
+    }
+
+// TODO : conditionnalize that:
+//    if(EVP_PKEY_CTX_set_rsa_padding(_pkctx, RSA_PKCS1_PADDING) <= 0) {
+//        throw invalid_key_exception(/*...*/);
+//    }
+}
+
+evp_verify::~evp_verify()
+{
+    if(_mdctx!=nullptr) {
+        EVP_MD_CTX_free(_mdctx);
+        _mdctx = nullptr;
+    }
+}
+
+verifier& evp_verify::update(const void* data, size_t size)
+{
+    if(EVP_DigestVerifyUpdate(_mdctx, data, size)==0) {
+        throw digest_exception("Cannot update verifier");
+    }
+    return *this;
+}
+
+bool evp_verify::verify(const void* data, size_t size)
+{
+    int res = EVP_DigestVerifyFinal(_mdctx, (const unsigned char *)data, size);
+    if(res==1) {
+        return true;
+    } else if(res==0) {
+        return false;
+    } else {
+        throw digest_exception("Problem while ferifying signature.");
+    }
+}
 
 //
 // EVP symmetric cipher
 //
-
-
 
 struct symetric_cipher_desc {
     std::string name;
@@ -503,8 +653,8 @@ std::vector<uint8_t/*std::byte*/> evp_cipher::finalize(const void* data, size_t 
 // EVP PKEY
 //
 
-std::shared_ptr<cipher> evp_pkey_cipher::get(const std::string& algorithm, const std::string& padding, const std::string& md, const cxy::security::key* key, bool encrypt) {
-    // Assume a key is present
+EVP_PKEY* evp_pkey_cipher::get(const std::string& algorithm, const cxy::security::key* key) {
+   // Assume a key is present
     if(key == nullptr) {
         return nullptr; // A key is mandatory
     }
@@ -528,6 +678,28 @@ std::shared_ptr<cipher> evp_pkey_cipher::get(const std::string& algorithm, const
         if(!EVP_PKEY_set1_RSA(pkey, const_cast<RSA*>(orsakey->get()))) {
             throw invalid_key_exception("Cannot assign RSA key");
         }
+
+        return pkey;
+    }
+
+    // Not supported key type
+    return nullptr;
+}
+
+
+std::shared_ptr<cipher> evp_pkey_cipher::get(const std::string& algorithm, const std::string& padding, const std::string& md, const cxy::security::key* key, bool encrypt) {
+    // Assume a key is present
+    if(key == nullptr) {
+        return nullptr; // A key is mandatory
+    }
+
+    //
+    // RSA
+    //
+    EVP_PKEY* pkey = get(algorithm, key);
+
+    const rsa_key* rsakey = dynamic_cast<const rsa_key*>(key);
+    if(rsakey!=nullptr) {
 
         EVP_PKEY_PADDING_MODE padmode = RSA_PAD_NONE;
         if(padding==CXY_CIPHER_PKCS1_PADDING) {

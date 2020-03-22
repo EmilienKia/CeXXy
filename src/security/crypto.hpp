@@ -300,6 +300,22 @@ public:
 
 
 
+class signature
+{
+public:
+    virtual signature& update(const void* data, size_t size) =0;
+
+    virtual std::vector<uint8_t /*std::byte*/>  sign() =0;
+};
+
+
+class verifier
+{
+public:
+    virtual verifier& update(const void* data, size_t size) =0;
+
+    virtual bool verify(const void* data, size_t size) =0;
+};
 
 
 class cipher
@@ -336,6 +352,8 @@ public:
     std::shared_ptr<cipher> encrypt();
     std::shared_ptr<cipher> decrypt();
     std::shared_ptr<message_digest> digest();
+    std::shared_ptr<signature> sign();
+    std::shared_ptr<verifier> verify();
 
 private:
     std::string _algo, _mode, _pad, _md;

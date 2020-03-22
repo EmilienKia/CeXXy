@@ -146,5 +146,15 @@ std::shared_ptr<message_digest> cipher_builder::digest()
     return openssl::evp_md::get(_md);
 }
 
+std::shared_ptr<signature> cipher_builder::sign()
+{
+    return openssl::evp_sign::get(*this);
+}
+
+std::shared_ptr<verifier> cipher_builder::verify()
+{
+    return openssl::evp_verify::get(*this);
+}
+
 
 }} // namespace cxy::security

@@ -78,6 +78,52 @@ public:
 };
 
 
+class evp_sign : public signature
+{
+    // TODO Add a better way to handle algorithm name.
+protected:
+    EVP_MD_CTX* _mdctx = nullptr;
+    EVP_PKEY_CTX* _pkctx = nullptr;
+    std::string _algo;
+    const private_key* _pkey;
+
+public:
+
+    static std::shared_ptr<evp_sign> get(const cipher_builder& bldr);
+
+    evp_sign() = delete;
+    evp_sign(evp_sign&& other) = default;
+    evp_sign(const evp_sign& other) = delete;
+
+    evp_sign(const EVP_MD *md, const std::string& algo, const private_key* key, EVP_PKEY* pkey);
+    virtual ~evp_sign();
+
+    virtual signature& update(const void* data, size_t size) override;
+    virtual std::vector<uint8_t /*std::byte*/>  sign() override;
+};
+
+class evp_verify : public verifier
+{
+protected:
+    EVP_MD_CTX* _mdctx = nullptr;
+    EVP_PKEY_CTX* _pkctx = nullptr;
+    std::string _algo;
+    const public_key* _pkey;
+
+
+public:
+    static std::shared_ptr<evp_verify> get(const cipher_builder& bldr);
+
+    evp_verify() = delete;
+    evp_verify(evp_verify&& other) = default;
+    evp_verify(const evp_verify& other) = delete;
+
+    evp_verify(const EVP_MD *md, const std::string& algo, const public_key* key, EVP_PKEY* pkey);
+    virtual ~evp_verify();
+
+    virtual verifier& update(const void* data, size_t size) override;
+    bool verify(const void* data, size_t size) override;
+};
 
 //
 // EVP based symmetric cipher support
@@ -118,6 +164,9 @@ private:
     bool _encode;
 
 public:
+
+    static EVP_PKEY* get(const std::string& algorithm, const cxy::security::key* key);
+
     static std::shared_ptr<cipher> get(const std::string& algorithm, const std::string& padding, const std::string& md, const cxy::security::key* key, bool encrypt);
 
     evp_pkey_cipher(EVP_PKEY *pkey, EVP_PKEY_PADDING_MODE padding, const std::string& md, bool enc);
