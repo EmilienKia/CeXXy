@@ -27,8 +27,10 @@
 
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
-
+#include <openssl/pem.h>
 #include <openssl/err.h>
+
+
 
 // https://crypto.stackexchange.com/questions/32692/what-is-the-typical-block-size-in-rsa/32694#32694
 // https://crypto.stackexchange.com/questions/2074/rsa-oaep-input-parameters
@@ -1006,6 +1008,95 @@ std::shared_ptr<key_pair> ossl_rsa_key_pair_generator::generate() {
     }
 }
 
+
+//
+// PEM readers
+//
+
+//
+// OpenSSL system's FILE PEM reader
+//
+ossl_FILE_pem_reader::ossl_FILE_pem_reader(FILE* f):
+_fp(f, std::fclose)
+{
+}
+
+// TODO fopencookie
+
+ossl_FILE_pem_reader::ossl_FILE_pem_reader(const std::string& path):
+ossl_FILE_pem_reader(fopen(path.c_str(), "r"))
+{
+    if(!_fp) {
+        // throw exception
+    }
+}
+
+ossl_FILE_pem_reader::ossl_FILE_pem_reader(const void *buf, size_t size):
+ossl_FILE_pem_reader(fmemopen(const_cast<void*>(buf), size, "r"))
+{
+    if(!_fp) {
+        // throw exception
+    }
+}
+
+std::shared_ptr<security::public_key> ossl_FILE_pem_reader::public_key()
+{
+    EVP_PKEY* pkey = PEM_read_PUBKEY(_fp.get(), nullptr, nullptr, nullptr);
+    if(pkey!=nullptr) {
+        if(EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) {
+            RSA *rsa = EVP_PKEY_get1_RSA(pkey);
+            EVP_PKEY_free(pkey);
+            return std::shared_ptr<security::public_key>(new ossl_rsa_public_key(rsa));
+        }
+        // TODO Add other public key types
+        EVP_PKEY_free(pkey);
+    }
+    return nullptr;
+}
+
+std::shared_ptr<security::private_key> ossl_FILE_pem_reader::private_key()
+{
+    EVP_PKEY* pkey = PEM_read_PrivateKey(_fp.get(), nullptr, nullptr, nullptr);
+    if(pkey!=nullptr) {
+        if(EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) {
+            RSA *rsa = EVP_PKEY_get1_RSA(pkey);
+            EVP_PKEY_free(pkey);
+            return std::dynamic_pointer_cast<security::private_key>(
+                make_rsa_private_key(rsa)
+            );
+        }
+        // TODO Add other private key types
+        EVP_PKEY_free(pkey);
+    }
+    return nullptr;
+}
+
+std::shared_ptr<security::private_key> ossl_FILE_pem_reader::private_key(const std::string& passwd)
+{
+    EVP_PKEY* pkey = PEM_read_PrivateKey(_fp.get(), nullptr, nullptr, const_cast<char*>(passwd.c_str()));
+    if(pkey!=nullptr) {
+        if(EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) {
+            RSA *rsa = EVP_PKEY_get1_RSA(pkey);
+            EVP_PKEY_free(pkey);
+            return std::dynamic_pointer_cast<security::private_key>(
+                make_rsa_private_key(rsa)
+            );
+        }
+        // TODO Add other private key types
+        EVP_PKEY_free(pkey);
+    }
+    return nullptr;
+}
+
+//
+// ossl_string_pem_reader
+//
+
+ossl_string_pem_reader::ossl_string_pem_reader(const std::string& str):
+_str(new std::string(str))
+{
+    _fp = std::shared_ptr<std::FILE>(fmemopen(const_cast<char*>(_str->data()), _str->size(), "r"), std::fclose);
+}
 
 
 

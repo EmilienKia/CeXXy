@@ -32,6 +32,8 @@
 #include <map>
 #include <functional>
 
+#include <cstdio>
+
 
 namespace cxy
 {
@@ -285,6 +287,51 @@ public:
     virtual size_t key_size() const override;
     virtual cxy::math::big_integer public_exponent() const;
     virtual std::shared_ptr<key_pair> generate() override;
+};
+
+
+
+
+
+
+//
+// PEM Readers
+//
+
+
+
+class ossl_FILE_pem_reader : public pem_reader
+{
+protected:
+    std::shared_ptr<std::FILE> _fp;
+
+public:
+    ossl_FILE_pem_reader() = default;
+    ossl_FILE_pem_reader(const ossl_FILE_pem_reader&) = delete;
+    ossl_FILE_pem_reader(ossl_FILE_pem_reader&&) = default;
+    virtual ~ossl_FILE_pem_reader() = default;
+
+    ossl_FILE_pem_reader(FILE* f);
+    ossl_FILE_pem_reader(const std::string& path);
+    ossl_FILE_pem_reader(const void *buf, size_t size);
+
+    virtual std::shared_ptr<security::public_key> public_key() override;
+    virtual std::shared_ptr<security::private_key> private_key() override;
+    virtual std::shared_ptr<security::private_key> private_key(const std::string& passwd) override;
+};
+
+class ossl_string_pem_reader : public ossl_FILE_pem_reader
+{
+    std::unique_ptr<std::string> _str;
+
+public:
+    ossl_string_pem_reader() = delete;
+    ossl_string_pem_reader(const ossl_string_pem_reader&) = delete;
+    ossl_string_pem_reader(ossl_string_pem_reader&&) = default;
+    virtual ~ossl_string_pem_reader() = default;
+
+    ossl_string_pem_reader(const std::string& str);
+
 };
 
 

@@ -361,5 +361,22 @@ private:
     std::vector<uint8_t/*std::byste*/> _iv;
 };
 
+
+
+
+class pem_reader
+{
+public:
+    virtual std::shared_ptr<security::public_key> public_key() = 0;
+    virtual std::shared_ptr<security::private_key> private_key() = 0;
+    virtual std::shared_ptr<security::private_key> private_key(const std::string& passwd) = 0;
+    // TODO Add variant with functional callback.
+
+    static std::shared_ptr<pem_reader> from_file(const std::string& path);
+    static std::shared_ptr<pem_reader> from_memory(const void* data, size_t sz);
+    static std::shared_ptr<pem_reader> from_string(const std::string& str);
+
+};
+
 }} // namespace cxy::security
 #endif // _SECURITY_CIPHER_HPP_

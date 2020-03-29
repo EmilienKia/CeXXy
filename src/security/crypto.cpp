@@ -157,4 +157,24 @@ std::shared_ptr<verifier> cipher_builder::verify()
 }
 
 
+//
+// PEM reader
+//
+
+std::shared_ptr<pem_reader> pem_reader::from_file(const std::string& path)
+{
+    return std::make_shared<openssl::ossl_FILE_pem_reader>(path);
+}
+
+std::shared_ptr<pem_reader> pem_reader::from_memory(const void* data, size_t sz)
+{
+    return std::make_shared<openssl::ossl_FILE_pem_reader>(data, sz);
+}
+
+std::shared_ptr<pem_reader> pem_reader::from_string(const std::string& str)
+{
+    return std::make_shared<openssl::ossl_string_pem_reader>(str);
+}
+
+
 }} // namespace cxy::security
