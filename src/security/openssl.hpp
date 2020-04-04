@@ -137,10 +137,13 @@ private:
     EVP_CIPHER_CTX *_ctx = nullptr;
 
 public:
+    static const EVP_CIPHER* find_EVP_CIPHER(const cipher_builder& bldr);
     static std::shared_ptr<cipher> get(const std::string& algorithm, const std::string& mode, const std::string& padding, const cxy::security::key* key, const std::vector<uint8_t/*std::byte*/>& iv, bool encrypt);
 
     evp_cipher(const EVP_CIPHER *type, bool padding, const unsigned char *key, const unsigned char *iv, bool enc);
     virtual ~evp_cipher();
+
+    const EVP_CIPHER* get_EVP_CIPHER() const { return _ctx!=nullptr ? EVP_CIPHER_CTX_cipher(_ctx) : nullptr; }
 
     virtual cipher& update_aad(const void* data, size_t sz) override;
     virtual std::vector<uint8_t/*std::byte*/> update(const void* data, size_t sz) override;
@@ -316,8 +319,12 @@ public:
     ossl_FILE_pem_reader(const void *buf, size_t size);
 
     virtual std::shared_ptr<security::public_key> public_key() override;
+    virtual std::shared_ptr<security::rsa_public_key> rsa_public_key() override;
     virtual std::shared_ptr<security::private_key> private_key() override;
     virtual std::shared_ptr<security::private_key> private_key(const std::string& passwd) override;
+    virtual std::shared_ptr<security::rsa_private_key> rsa_private_key() override;
+    virtual std::shared_ptr<security::rsa_private_key> rsa_private_key(const std::string& passwd) override;
+
 };
 
 class ossl_string_pem_reader : public ossl_FILE_pem_reader
@@ -334,6 +341,48 @@ public:
 
 };
 
+
+//
+// PEM Writers
+//
+
+class ossl_FILE_pem_writer : public virtual pem_writer
+{
+protected:
+    std::shared_ptr<std::FILE> _fp;
+
+public:
+    ossl_FILE_pem_writer() = default;
+    ossl_FILE_pem_writer(const ossl_FILE_pem_writer&) = delete;
+    ossl_FILE_pem_writer(ossl_FILE_pem_writer&&) = delete;
+    virtual ~ossl_FILE_pem_writer() = default;
+
+    ossl_FILE_pem_writer(FILE* f);
+    ossl_FILE_pem_writer(const std::string& path, bool append);
+
+    virtual void public_key(const security::public_key& key) override;
+    virtual void rsa_public_key(const security::rsa_public_key& key) override;
+    virtual void private_key(const security::private_key& key) override;
+    virtual void private_key(const security::private_key& key, const security::cipher_builder& cipher, const std::string& passwd) override;
+    virtual void rsa_private_key(const security::rsa_private_key& key) override;
+    virtual void rsa_private_key(const security::rsa_private_key& key, const security::cipher_builder& cipher, const std::string& passwd) override;
+
+};
+
+class ossl_string_pem_writer : public ossl_FILE_pem_writer, public pem_string_writer
+{
+protected:
+    mutable char* _str = nullptr;
+    mutable size_t _sz = 0;
+
+public:
+    ossl_string_pem_writer();
+    ossl_string_pem_writer(const ossl_string_pem_writer&) = delete;
+    ossl_string_pem_writer(ossl_string_pem_writer&&) = delete;
+    virtual ~ossl_string_pem_writer();
+
+    virtual std::string str()const override;
+};
 
 }}} // namespace cxy::security::openssl
 #endif // _SECURITY_OPENSSL_HPP_

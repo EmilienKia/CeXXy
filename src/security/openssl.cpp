@@ -504,6 +504,31 @@ symetric_cipher_desc _sym_ciphers [] = {
 };
 
 
+const EVP_CIPHER* evp_cipher::find_EVP_CIPHER(const cipher_builder& bldr)
+{
+    // TODO normalize params
+
+    bool find_algo = false;
+    bool find_mode = false;
+    for(auto& cdesc : _sym_ciphers) {
+        if(bldr.algorithm()==cdesc.name) {
+            find_algo = true;
+            if(bldr.mode()==cdesc.mode) {
+                find_mode = true;
+                return cdesc.fct();
+            }
+        }
+    }
+
+    if (!find_algo) {
+        throw no_such_algorithm_exception("No corresponding cipher.");
+    } else if (!find_mode) {
+        throw no_such_algorithm_exception("No corresponding mode.");
+    } else {
+        throw invalid_key_exception("Key size not supported.");
+    }
+}
+
 
 std::shared_ptr<cipher> evp_cipher::get(const std::string& algorithm, const std::string& mode, const std::string& padding, const cxy::security::key* key, const std::vector<uint8_t/*std::byte*/>& iv, bool encrypt)
 {
@@ -530,6 +555,7 @@ std::shared_ptr<cipher> evp_cipher::get(const std::string& algorithm, const std:
     }
 
     // TODO normalize params
+
     bool find_algo = false;
     bool find_mode = false;
     for(auto& cdesc : _sym_ciphers) {
@@ -538,7 +564,7 @@ std::shared_ptr<cipher> evp_cipher::get(const std::string& algorithm, const std:
             if(mode==cdesc.mode) {
                 find_mode = true;
                 if(cdesc.key_size==-1 || seckey->size()==cdesc.key_size) {
-                    auto c = cdesc.fct();
+                    const EVP_CIPHER* c = cdesc.fct();
                     int ivsz = EVP_CIPHER_iv_length(c);
                     if(iv.size()==ivsz) {
                         return std::make_shared<evp_cipher>(c, pad, seckey->value().data(), iv.data(), encrypt);
@@ -1027,7 +1053,8 @@ ossl_FILE_pem_reader::ossl_FILE_pem_reader(const std::string& path):
 ossl_FILE_pem_reader(fopen(path.c_str(), "r"))
 {
     if(!_fp) {
-        // throw exception
+        // TODO process errno
+        throw std::runtime_error("Cannot fopen filestream");
     }
 }
 
@@ -1035,12 +1062,14 @@ ossl_FILE_pem_reader::ossl_FILE_pem_reader(const void *buf, size_t size):
 ossl_FILE_pem_reader(fmemopen(const_cast<void*>(buf), size, "r"))
 {
     if(!_fp) {
-        // throw exception
+        // TODO process errno
+        throw std::runtime_error("Cannot open memstream");
     }
 }
 
 std::shared_ptr<security::public_key> ossl_FILE_pem_reader::public_key()
 {
+    // TODO support also PEM_read_RSAPublicKey in parallel.
     EVP_PKEY* pkey = PEM_read_PUBKEY(_fp.get(), nullptr, nullptr, nullptr);
     if(pkey!=nullptr) {
         if(EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) {
@@ -1050,6 +1079,15 @@ std::shared_ptr<security::public_key> ossl_FILE_pem_reader::public_key()
         }
         // TODO Add other public key types
         EVP_PKEY_free(pkey);
+    }
+    return nullptr;
+}
+
+std::shared_ptr<security::rsa_public_key> ossl_FILE_pem_reader::rsa_public_key()
+{
+    RSA* rsa = PEM_read_RSAPublicKey(_fp.get(), nullptr, nullptr, nullptr);
+    if(rsa!=nullptr) {
+        return std::shared_ptr<security::rsa_public_key>(new ossl_rsa_public_key(rsa));
     }
     return nullptr;
 }
@@ -1088,6 +1126,25 @@ std::shared_ptr<security::private_key> ossl_FILE_pem_reader::private_key(const s
     return nullptr;
 }
 
+
+std::shared_ptr<security::rsa_private_key> ossl_FILE_pem_reader::rsa_private_key()
+{
+    RSA* rsa = PEM_read_RSAPrivateKey(_fp.get(), nullptr, nullptr, nullptr);
+    if(rsa!=nullptr) {
+        return make_rsa_private_key(rsa);
+    }
+    return nullptr;
+}
+
+std::shared_ptr<security::rsa_private_key> ossl_FILE_pem_reader::rsa_private_key(const std::string& passwd)
+{
+    RSA* rsa = PEM_read_RSAPrivateKey(_fp.get(), nullptr, nullptr, const_cast<char*>(passwd.c_str()));
+    if(rsa!=nullptr) {
+        return make_rsa_private_key(rsa);
+    }
+    return nullptr;
+}
+
 //
 // ossl_string_pem_reader
 //
@@ -1099,5 +1156,184 @@ _str(new std::string(str))
 }
 
 
+//
+// PEM writers
+//
+
+//
+// ossl_FILE_pem_writer
+//
+
+ossl_FILE_pem_writer::ossl_FILE_pem_writer(FILE* f):
+_fp(f, std::fclose)
+{
+}
+
+ossl_FILE_pem_writer::ossl_FILE_pem_writer(const std::string& path, bool append):
+ossl_FILE_pem_writer(fopen(path.c_str(), append ? "a" : "w"))
+{
+    if(!_fp) {
+        // TODO process errno
+        throw std::runtime_error("Cannot fopen filestream");
+    }
+}
+
+void ossl_FILE_pem_writer::public_key(const security::public_key& key)
+{
+    std::shared_ptr<EVP_PKEY> pkey { EVP_PKEY_new(), EVP_PKEY_free };
+
+    const security::rsa_public_key* rsakey = dynamic_cast<const security::rsa_public_key*>(&key);
+    if(rsakey != nullptr) {
+        const ossl_rsa_public_key* osslrsakey = dynamic_cast<const ossl_rsa_public_key*>(rsakey);
+        if(osslrsakey==nullptr) {
+            // TODO convert rsa privkey to ossl
+            throw std::runtime_error("Not implemented yet");
+        }
+        if(!EVP_PKEY_set1_RSA(pkey.get(), const_cast<RSA*>(osslrsakey->get()))) {
+            throw invalid_key_exception("Invalid RSA public key");
+        }
+    } else {
+        // TODO add other public key types
+        throw key_exception("unsupported key type");
+    }
+    
+    if(!PEM_write_PUBKEY(_fp.get(), pkey.get())) {
+        throw security_exception("Failling writing PKCS8 public key");
+    }
+}
+
+void ossl_FILE_pem_writer::rsa_public_key(const security::rsa_public_key& key)
+{
+    const ossl_rsa_public_key* osslrsakey = dynamic_cast<const ossl_rsa_public_key*>(&key);
+    if(osslrsakey==nullptr) {
+        // TODO convert rsa pubkey to ossl
+        throw std::runtime_error("Not implemented yet");
+    }
+    if(PEM_write_RSAPublicKey(_fp.get(), const_cast<RSA*>(osslrsakey->get())) ==0) {
+        throw security_exception("Failling writing PKCS1 RSA public key");
+    }
+}
+
+
+void ossl_FILE_pem_writer::private_key(const security::private_key& key)
+{
+    std::shared_ptr<EVP_PKEY> pkey { EVP_PKEY_new(), EVP_PKEY_free };
+
+    const security::rsa_private_key* rsakey = dynamic_cast<const security::rsa_private_key*>(&key);
+    if(rsakey != nullptr) {
+        const ossl_rsa_private_key* osslrsakey = dynamic_cast<const ossl_rsa_private_key*>(rsakey);
+        if(osslrsakey==nullptr) {
+            // TODO convert rsa privkey to ossl
+            throw std::runtime_error("Not implemented yet");
+        }
+        if(!EVP_PKEY_set1_RSA(pkey.get(), const_cast<RSA*>(osslrsakey->get()))) {
+            throw invalid_key_exception("Invalid RSA private key");
+        }
+    } else {
+        // TODO add other public key types
+        throw key_exception("unsupported key type");
+    }
+    
+    if(!PEM_write_PKCS8PrivateKey(_fp.get(), pkey.get(), nullptr, nullptr, 0, nullptr, 0)) {
+        throw security_exception("Failling writing PKCS8 private key");
+    }
+}
+
+void ossl_FILE_pem_writer::private_key(const security::private_key& key, const security::cipher_builder& cipher, const std::string& passwd)
+{
+    const EVP_CIPHER* evpcipher = evp_cipher::find_EVP_CIPHER(cipher);
+    if(evpcipher==nullptr) {
+        throw no_such_algorithm_exception("Invalid algorithm");
+        // Shall not occur, an exception must have been thrown.
+    }
+
+    std::shared_ptr<EVP_PKEY> pkey { EVP_PKEY_new(), EVP_PKEY_free };
+    const security::rsa_private_key* rsakey = dynamic_cast<const security::rsa_private_key*>(&key);
+    if(rsakey != nullptr) {
+        const ossl_rsa_private_key* osslrsakey = dynamic_cast<const ossl_rsa_private_key*>(rsakey);
+        if(osslrsakey==nullptr) {
+            // TODO convert rsa privkey to ossl
+            throw std::runtime_error("Not implemented yet");
+        }
+        if(!EVP_PKEY_set1_RSA(pkey.get(), const_cast<RSA*>(osslrsakey->get()))) {
+            throw invalid_key_exception("Invalid RSA private key");
+        }
+    } else {
+        // TODO add other public key types
+        throw key_exception("Unsupported key type");
+    }
+    
+    if(!PEM_write_PKCS8PrivateKey(_fp.get(), pkey.get(), evpcipher, const_cast<char*>(passwd.data()), passwd.size(), nullptr, 0)) {
+        throw security_exception("Failling writing encrypted PKCS8 private key");
+    }
+}
+
+void ossl_FILE_pem_writer::rsa_private_key(const security::rsa_private_key& rsakey)
+{
+    std::shared_ptr<EVP_PKEY> pkey { EVP_PKEY_new(), EVP_PKEY_free };
+
+    const ossl_rsa_private_key* osslrsakey = dynamic_cast<const ossl_rsa_private_key*>(&rsakey);
+    if(osslrsakey==nullptr) {
+        // TODO convert rsa privkey to ossl
+        throw std::runtime_error("Not implemented yet");
+    }
+    
+    if(!PEM_write_RSAPrivateKey(_fp.get(), const_cast<RSA*>(osslrsakey->get()), nullptr, nullptr, 0, nullptr, 0)) {
+        throw security_exception("Failling writing PKCS1 RSA private key");
+    }
+}
+
+void ossl_FILE_pem_writer::rsa_private_key(const security::rsa_private_key& rsakey, const security::cipher_builder& cipher, const std::string& passwd)
+{
+    const EVP_CIPHER* evpcipher = evp_cipher::find_EVP_CIPHER(cipher);
+    if(evpcipher==nullptr) {
+        throw no_such_algorithm_exception("Invalid algorithm");
+        // Shall not occur, an exception must have been thrown.
+    }
+
+    const ossl_rsa_private_key* osslrsakey = dynamic_cast<const ossl_rsa_private_key*>(&rsakey);
+    if(osslrsakey==nullptr) {
+        // TODO convert rsa privkey to ossl
+        throw std::runtime_error("Not implemented yet");
+    }
+    
+    if(!PEM_write_RSAPrivateKey(_fp.get(), const_cast<RSA*>(osslrsakey->get()), evpcipher, (unsigned char*) const_cast<char*>(passwd.data()), passwd.size(), nullptr, 0)) {
+        throw security_exception("Failling writing encrypted PKCS1 RSA private key");
+    }
+}
+
+
+//
+// ossl_string_pem_writer
+//
+
+ossl_string_pem_writer::ossl_string_pem_writer()
+{
+    std::FILE* f = open_memstream(&_str, &_sz);
+    if(f==nullptr) {
+        // TODO process errno
+        throw std::runtime_error("Cannot open memstream");
+    }
+    _fp = std::shared_ptr<std::FILE>(f, std::fclose);
+}
+
+ossl_string_pem_writer::~ossl_string_pem_writer()
+{
+    _fp.reset();
+    if(_str!=nullptr) {
+        free(_str);
+        _str = nullptr;
+    }
+    _sz = 0;
+}
+
+std::string ossl_string_pem_writer::str()const
+{
+    if(fflush(_fp.get()) != 0) {
+        // TODO process errno
+        throw std::runtime_error("Cannot fflush memstream");
+    }
+    return std::string(_str, _str+_sz);
+}
 
 }}} // namespace cxy::security::openssl

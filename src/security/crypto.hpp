@@ -334,6 +334,10 @@ class cipher_builder
 {
 public:
     cipher_builder() = default;
+    cipher_builder(const cipher_builder&) = default;
+    cipher_builder(cipher_builder&&) = default;
+    cipher_builder& operator=(const cipher_builder&) = default;
+    cipher_builder& operator=(cipher_builder&&) = default;
 
     cipher_builder& algorithm(const std::string& algo);
     cipher_builder& mode(const std::string& mode);
@@ -367,16 +371,107 @@ private:
 class pem_reader
 {
 public:
+    /**
+     * Read a public key using SubjectPublicKeyInfo structure.
+     * @return The read public key.
+     */
     virtual std::shared_ptr<security::public_key> public_key() = 0;
+
+    /**
+     * Read a RSA public key using PKCS#1 RSAPublicKey structure.
+     * @return The read public key.
+     */
+    virtual std::shared_ptr<security::rsa_public_key> rsa_public_key() = 0;
+
+    /**
+     * Read an unencrypted private key using PKCS#8 PrivateKeyInfo structure.
+     * @return the read private key.
+     */
     virtual std::shared_ptr<security::private_key> private_key() = 0;
+    /**
+     * Read a crypted private key using PKCS#8 EncryptedPrivateKeyInfo structure.
+     * @param passwd Password to be used to uncrypt the key.
+     * @return the read private key.
+     */    
     virtual std::shared_ptr<security::private_key> private_key(const std::string& passwd) = 0;
-    // TODO Add variant with functional callback.
+
+    /**
+     * Read an unencrypted RSA private key using traditional PKCS#1 structure.
+     * @return the read private key.
+     */
+    virtual std::shared_ptr<security::rsa_private_key> rsa_private_key() = 0;
+    /**
+     * Read a crypted RSA private key using traditional PKCS#1 structure.
+     * @param passwd Password to be used to uncrypt the key.
+     * @return the read private key.
+     */    
+    virtual std::shared_ptr<security::rsa_private_key> rsa_private_key(const std::string& passwd) = 0;
+
 
     static std::shared_ptr<pem_reader> from_file(const std::string& path);
     static std::shared_ptr<pem_reader> from_memory(const void* data, size_t sz);
     static std::shared_ptr<pem_reader> from_string(const std::string& str);
-
 };
+
+
+class pem_string_writer;
+
+
+class pem_writer
+{
+public:
+    /**
+     * Write a public key using SubjectPublicKeyInfo structure.
+     * @param key Public key to write.
+     */
+    virtual void public_key(const security::public_key& key) =0;
+
+    /**
+     * Write a RSA public key using PKCS#1 RSAPublicKey structure.
+     * @param key Public key to write.
+     */
+    virtual void rsa_public_key(const security::rsa_public_key& key) =0;
+
+    /**
+     * Write an unencrypted private key using PKCS#8 PrivateKeyInfo structure.
+     * @param key the private key to write.
+     */
+    virtual void private_key(const security::private_key& key) =0;
+
+    /**
+     * Write a crypted private key using PKCS#8 EncryptedPrivateKeyInfo structure.
+     * @param key the private key to write.
+     * @param cipher the cipher builder to use to describe the key encryption
+     * @param passwd the password used to encrypt the key
+     */
+    virtual void private_key(const security::private_key& key, const security::cipher_builder& cipher, const std::string& passwd) =0;
+
+    /**
+     * Write a RSA private key using PKCS#1 RSAPrivateKey structure.
+     * @param key RSA private key to write.
+     */
+    virtual void rsa_private_key(const security::rsa_private_key& key) =0;
+    /**
+     * Write a RSA crypted private key using RSAPrivateKey structure.
+     * @param key the private key to write.
+     * @param cipher the cipher builder to use to describe the key encryption
+     * @param passwd the password used to encrypt the key
+     */
+    virtual void rsa_private_key(const security::rsa_private_key& key, const security::cipher_builder& cipher, const std::string& passwd) =0;
+
+
+    static std::shared_ptr<pem_writer> to_file(const std::string& path, bool append = false);
+    static std::shared_ptr<pem_string_writer> to_string();
+};
+
+class pem_string_writer : public virtual pem_writer
+{
+public:
+    virtual std::string str()const =0;
+
+    using pem_writer::to_string;
+};
+
 
 }} // namespace cxy::security
 #endif // _SECURITY_CIPHER_HPP_

@@ -177,4 +177,19 @@ std::shared_ptr<pem_reader> pem_reader::from_string(const std::string& str)
 }
 
 
+//
+// PEM Writer
+//
+
+std::shared_ptr<pem_writer> pem_writer::to_file(const std::string& path, bool append)
+{
+    return std::make_shared<openssl::ossl_FILE_pem_writer>(path, append);
+}
+
+std::shared_ptr<pem_string_writer> pem_writer::to_string()
+{
+    return std::make_shared<openssl::ossl_string_pem_writer>();
+}
+
+
 }} // namespace cxy::security
