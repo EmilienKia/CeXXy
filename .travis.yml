@@ -11,7 +11,7 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - build-essential
-      - libtool
+      - libtool-bin
       - libgmp-dev
       - libssl-dev
 script:
