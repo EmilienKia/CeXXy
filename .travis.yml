@@ -1,0 +1,18 @@
+sudo: false
+language: cpp
+dist: bionic
+compiler:
+- gcc
+os:
+- linux
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - libgmp-dev
+      - libssl-dev
+script:
+  - ./autogen.sh
+  - make
+  - make check
