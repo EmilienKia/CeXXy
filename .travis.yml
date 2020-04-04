@@ -17,4 +17,4 @@ addons:
 script:
   - ./autogen.sh
   - make
-  - make check
+  - make check || { cat tests/test-suite.log ; false ; }
