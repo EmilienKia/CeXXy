@@ -85,7 +85,7 @@ TEST_CASE( "RSA sipher test", "[cipher][RSA]" ) {
     std::vector<uint8_t> sample;
 
     SECTION( "No padding: data size shall equals to key size" ) {
-        std::generate_n(std::back_inserter(sample), key_size/8, [&](){return uniform_dist(e1);});
+        std::generate_n(std::back_inserter(sample), pub->modulus_size()/8, [&](){return uniform_dist(e1);});
         enc = cxy::security::cipher_builder().key(*pub).padding(CXY_CIPHER_NO_PADDING).encrypt();
         dec = cxy::security::cipher_builder().key(*priv).padding(CXY_CIPHER_NO_PADDING).decrypt();
     }

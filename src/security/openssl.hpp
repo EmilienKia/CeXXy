@@ -206,6 +206,7 @@ public:
     const RSA* get() const {return _rsa.get();}
 
     virtual cxy::math::big_integer modulus() const override;
+    virtual size_t modulus_size() const override;
 };
 
 

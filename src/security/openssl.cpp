@@ -853,7 +853,9 @@ cxy::math::big_integer ossl_rsa_key::modulus() const {
     return bn2bi(RSA_get0_n(_rsa.get()));
 }
 
-
+size_t ossl_rsa_key::modulus_size() const {
+    return RSA_bits(_rsa.get());
+}
 
 //
 // ossl_rsa_public_key

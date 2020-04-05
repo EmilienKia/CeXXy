@@ -188,6 +188,7 @@ class rsa_key : public virtual key
 {
 public:
     virtual cxy::math::big_integer modulus() const =0;
+    virtual size_t modulus_size() const=0;
 };
 
 
