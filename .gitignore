@@ -30,9 +30,6 @@ install-sh
 ltmain.sh
 missing
 
-*.log
-*.trs
-
 **~
 .anjuta*
 *.anjuta
@@ -42,6 +39,7 @@ missing
 .settings/
 nbproject/
 .vscode/
+.dirstamp
 
 *.pc
 

@@ -1,0 +1,6 @@
+*.log
+*.trs
+*.tst
+
+test-base
+test-security
