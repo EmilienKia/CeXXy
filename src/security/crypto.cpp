@@ -156,6 +156,11 @@ std::shared_ptr<verifier> cipher_builder::verify()
     return openssl::evp_verify::get(*this);
 }
 
+//
+// X500 Principal
+//
+
+
 
 //
 // PEM reader

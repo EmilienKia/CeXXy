@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <vector>
+#include <map>
 #include <initializer_list>
 
 #include "../math/big-integer.hpp"
@@ -368,6 +369,42 @@ private:
 
 
 
+class certificate
+{
+public:
+    virtual std::shared_ptr<security::public_key> public_key() const =0;
+};
+
+class principal
+{
+
+};
+
+class x500_principal : public virtual principal
+{
+public:
+    /** Retrieve the distinguished name on the RFC2253 format. */
+    virtual std::string name() const =0;
+
+    // TODO Add methods to generate, get or iterate along components
+
+};
+
+
+class x509_certificate : public virtual certificate
+{
+public:
+
+    /**
+     * Version of the certificate.
+     * @return 0 for v1, 1 for v2, 2 for v3.
+     */
+    virtual long version() const =0;
+    virtual const x500_principal& subject() const =0;
+    virtual const x500_principal& issuer() const =0;
+    virtual cxy::math::big_integer serial_number() const =0;
+};
+
 
 class pem_reader
 {
@@ -408,6 +445,11 @@ public:
      */    
     virtual std::shared_ptr<security::rsa_private_key> rsa_private_key(const std::string& passwd) = 0;
 
+    /**
+     * Read a X509 certificate.
+     * @return the read certificate.
+     */
+    virtual std::shared_ptr<security::x509_certificate> x509_certificate() =0;
 
     static std::shared_ptr<pem_reader> from_file(const std::string& path);
     static std::shared_ptr<pem_reader> from_memory(const void* data, size_t sz);

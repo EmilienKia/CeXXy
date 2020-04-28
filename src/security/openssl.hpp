@@ -185,7 +185,6 @@ public:
 };
 
 
-
 //
 // RSA
 //
@@ -259,9 +258,6 @@ public:
     virtual std::vector<cxy::math::big_integer> other_prime_info() const override;
 };
 
-std::shared_ptr<ossl_rsa_private_key> make_rsa_private_key(RSA* rsa);
-
-
 
 class ossl_rsa_key_pair : public rsa_key_pair
 {
@@ -294,8 +290,65 @@ public:
 };
 
 
+//
+// Various internal openssl converting functions
+//
+std::shared_ptr<ossl_rsa_private_key> make_rsa_private_key(RSA* rsa);
+std::shared_ptr<public_key> make_public_key(EVP_PKEY* pkey);
 
 
+
+
+//
+// X500 Principal
+//
+
+class ossl_x500_principal : public x500_principal
+{
+private:
+    std::shared_ptr<X509_NAME> _name;
+
+public:
+    ossl_x500_principal() = default;
+    ossl_x500_principal(ossl_x500_principal&&) = default;
+    ossl_x500_principal(const ossl_x500_principal&) = default;
+    ossl_x500_principal& operator=(ossl_x500_principal&&) = default;
+    ossl_x500_principal& operator=(const ossl_x500_principal&) = default;
+
+    ossl_x500_principal(X509_NAME* name);
+
+    operator bool()const;
+
+    virtual std::string name() const override;
+};
+
+
+//
+// X509 Certificate
+//
+
+
+class ossl_x509_certificate : public x509_certificate
+{
+private:
+    std::shared_ptr<X509> _cert;
+
+    mutable ossl_x500_principal _subject, _issuer;
+    mutable std::shared_ptr<security::public_key> _pubkey;
+
+public:
+    ossl_x509_certificate(X509* cert);
+    virtual ~ossl_x509_certificate() = default;
+
+    virtual long version() const override;
+
+    virtual std::shared_ptr<security::public_key> public_key() const override;
+
+    virtual const x500_principal& subject() const override;
+    virtual const x500_principal& issuer() const override;
+
+    virtual cxy::math::big_integer serial_number() const override;
+};
 
 
 //
@@ -325,6 +378,8 @@ public:
     virtual std::shared_ptr<security::private_key> private_key(const std::string& passwd) override;
     virtual std::shared_ptr<security::rsa_private_key> rsa_private_key() override;
     virtual std::shared_ptr<security::rsa_private_key> rsa_private_key(const std::string& passwd) override;
+
+    virtual std::shared_ptr<security::x509_certificate> x509_certificate() override;
 
 };
 

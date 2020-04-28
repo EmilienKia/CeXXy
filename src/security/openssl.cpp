@@ -963,23 +963,6 @@ std::vector<cxy::math::big_integer> ossl_rsa_multiprime_private_crt_key::other_p
 }
 
 
-
-std::shared_ptr<ossl_rsa_private_key> make_rsa_private_key(RSA* rsa) {
-    if(rsa!=nullptr) {
-        if (RSA_get_version(rsa)==RSA_ASN1_VERSION_MULTI) {
-            return std::dynamic_pointer_cast<ossl_rsa_private_key>(std::make_shared<ossl_rsa_multiprime_private_crt_key>(rsa));
-        } else if(RSA_get0_p(rsa)  != nullptr && RSA_get0_dmp1(rsa) != nullptr
-                && RSA_get0_q(rsa) != nullptr && RSA_get0_dmq1(rsa) != nullptr
-                && RSA_get0_iqmp(rsa) != nullptr ) {
-            return std::dynamic_pointer_cast<ossl_rsa_private_key>(std::make_shared<ossl_rsa_private_crt_key>(rsa));
-        } else {
-            return std::dynamic_pointer_cast<ossl_rsa_private_key>(std::make_shared<ossl_rsa_private_key>(rsa));
-        }
-    } else {
-        return nullptr;
-    }
-}
-
 //
 // ossl_rsa_key_pair
 //
@@ -1036,6 +1019,119 @@ std::shared_ptr<key_pair> ossl_rsa_key_pair_generator::generate() {
     }
 }
 
+//
+// Various internal openssl converting functions
+//
+
+std::shared_ptr<ossl_rsa_private_key> make_rsa_private_key(RSA* rsa) {
+    if(rsa!=nullptr) {
+        if (RSA_get_version(rsa)==RSA_ASN1_VERSION_MULTI) {
+            return std::dynamic_pointer_cast<ossl_rsa_private_key>(std::make_shared<ossl_rsa_multiprime_private_crt_key>(rsa));
+        } else if(RSA_get0_p(rsa)  != nullptr && RSA_get0_dmp1(rsa) != nullptr
+                && RSA_get0_q(rsa) != nullptr && RSA_get0_dmq1(rsa) != nullptr
+                && RSA_get0_iqmp(rsa) != nullptr ) {
+            return std::dynamic_pointer_cast<ossl_rsa_private_key>(std::make_shared<ossl_rsa_private_crt_key>(rsa));
+        } else {
+            return std::dynamic_pointer_cast<ossl_rsa_private_key>(std::make_shared<ossl_rsa_private_key>(rsa));
+        }
+    } else {
+        return nullptr;
+    }
+}
+
+
+std::shared_ptr<public_key> make_public_key(EVP_PKEY* pkey)
+{
+    if(pkey==nullptr) {
+        return nullptr;
+    }
+
+    if(EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) {
+        RSA *rsa = EVP_PKEY_get1_RSA(pkey);
+        return std::shared_ptr<security::public_key>(new ossl_rsa_public_key(rsa));
+    }
+    // TODO Add other public key types
+    return nullptr;
+}
+
+
+
+//
+// X500 Principal
+//
+
+ossl_x500_principal::ossl_x500_principal(X509_NAME* name):
+_name(name, X509_NAME_free)
+{
+}
+
+ossl_x500_principal::operator bool()const
+{
+    return _name != nullptr;
+}
+
+std::string ossl_x500_principal::name() const
+{
+    BIO *mem = BIO_new(BIO_s_mem());
+    if(X509_NAME_print_ex(mem, _name.get(), 0, XN_FLAG_RFC2253)==-1) {
+        // TODO handle error
+    }
+    char* buffer;
+    long size = BIO_get_mem_data(mem, &buffer);
+    std::string res;
+    if(size>0) {
+        res.assign(buffer, size);
+    }
+    BIO_free(mem);
+    return res;
+}
+
+//
+// X509 certificate
+//
+
+ossl_x509_certificate::ossl_x509_certificate(X509* cert):
+_cert(cert, X509_free)
+{
+}
+
+long ossl_x509_certificate::version() const
+{
+    return X509_get_version(_cert.get());
+}
+
+const x500_principal& ossl_x509_certificate::subject() const
+{
+    if(!_subject) {
+        _subject = ossl_x500_principal(X509_NAME_dup(X509_get_subject_name(_cert.get())));
+    }
+    return _subject;
+}
+
+const x500_principal& ossl_x509_certificate::issuer() const
+{
+    if(!_issuer) {
+        _issuer = ossl_x500_principal(X509_NAME_dup(X509_get_issuer_name(_cert.get())));
+    }
+    return _issuer;
+}
+
+cxy::math::big_integer ossl_x509_certificate::serial_number() const
+{
+    BIGNUM* bn = ASN1_INTEGER_to_BN(X509_get_serialNumber(_cert.get()), nullptr);
+    cxy::math::big_integer bi = bn2bi(bn);
+    BN_free(bn);
+    return bi;
+}
+
+std::shared_ptr<security::public_key> ossl_x509_certificate::public_key() const
+{
+    if(_pubkey==nullptr) {
+        EVP_PKEY * pkey = X509_get0_pubkey(_cert.get());
+        _pubkey = make_public_key(pkey);
+    }
+    return _pubkey;
+}
 
 //
 // PEM readers
@@ -1074,13 +1170,9 @@ std::shared_ptr<security::public_key> ossl_FILE_pem_reader::public_key()
     // TODO support also PEM_read_RSAPublicKey in parallel.
     EVP_PKEY* pkey = PEM_read_PUBKEY(_fp.get(), nullptr, nullptr, nullptr);
     if(pkey!=nullptr) {
-        if(EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) {
-            RSA *rsa = EVP_PKEY_get1_RSA(pkey);
-            EVP_PKEY_free(pkey);
-            return std::shared_ptr<security::public_key>(new ossl_rsa_public_key(rsa));
-        }
-        // TODO Add other public key types
+        std::shared_ptr<security::public_key> key = make_public_key(pkey);
         EVP_PKEY_free(pkey);
+        return key;
     }
     return nullptr;
 }
@@ -1146,6 +1238,16 @@ std::shared_ptr<security::rsa_private_key> ossl_FILE_pem_reader::rsa_private_key
     }
     return nullptr;
 }
+
+std::shared_ptr<security::x509_certificate> ossl_FILE_pem_reader::x509_certificate()
+{
+    X509* x509 = PEM_read_X509(_fp.get(), nullptr, nullptr, nullptr);
+    if(x509!=nullptr) {
+        return std::shared_ptr<security::x509_certificate>(new ossl_x509_certificate(x509));
+    }
+    return nullptr;
+}
+
 
 //
 // ossl_string_pem_reader
