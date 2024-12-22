@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * security/openssl.cpp
- * Copyright (C) 2020 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2020-2024 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -36,11 +36,7 @@
 // https://crypto.stackexchange.com/questions/2074/rsa-oaep-input-parameters
 
 
-namespace cxy
-{
-namespace security
-{
-namespace openssl
+namespace cxy::security::openssl
 {
 
 cxy::math::big_integer bn2bi(const BIGNUM *bn)
@@ -1338,4 +1334,4 @@ std::string ossl_string_pem_writer::str()const
     return std::string(_str, _str+_sz);
 }
 
-}}} // namespace cxy::security::openssl
+} // namespace cxy::security::openssl

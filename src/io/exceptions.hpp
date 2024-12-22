@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * io/exceptions.hpp
- * Copyright (C) 2019 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2019-2024 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -22,9 +22,7 @@
 
 #include <stdexcept>
 
-namespace cxy
-{
-namespace io
+namespace cxy::io
 {
 
 class io_exception : public std::runtime_error
@@ -56,5 +54,5 @@ public:
     explicit decoder_exception(const char* what_arg ) : io_exception(what_arg){}
 };
 
-}} // namespace cxy::io
+} // namespace cxy::io
 #endif // _IO_EXCEPTIONS_HPP_

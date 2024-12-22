@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * io/exceptions.cpp
- * Copyright (C) 2019 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2019-2024 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -19,9 +19,6 @@
 
 #include "exceptions.hpp"
 
-namespace cxy
+namespace cxy::io
 {
-namespace io
-{
-
-}} // namespace cxy::io
+} // namespace cxy::io

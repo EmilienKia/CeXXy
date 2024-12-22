@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * math/big-integer.cpp
- * Copyright (C) 2019 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2019-2024 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -19,9 +19,7 @@
 
 #include "big-integer.hpp"
 
-namespace cxy
-{
-namespace math
+namespace cxy::math
 {
 
 big_integer::big_integer()
@@ -531,4 +529,4 @@ void big_integer::swap(big_integer& integer)
 	mpz_swap(__integ, integer.__integ);
 }
 
-}} // namespace cxy::math
+} // namespace cxy::math

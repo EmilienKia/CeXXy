@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * security/openssl.hpp
- * Copyright (C) 2020 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2020-20204 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -35,11 +35,7 @@
 #include <cstdio>
 
 
-namespace cxy
-{
-namespace security
-{
-namespace openssl
+namespace cxy::security::openssl
 {
 
 cxy::math::big_integer bn2bi(const BIGNUM *bn);
@@ -385,5 +381,5 @@ public:
     virtual std::string str()const override;
 };
 
-}}} // namespace cxy::security::openssl
+} // namespace cxy::security::openssl
 #endif // _SECURITY_OPENSSL_HPP_

@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * security/crypto.hpp
- * Copyright (C) 2019-2020 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2019-2024 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -80,9 +80,7 @@
 #define CXY_KEY_RSA       "RSA"
 
 
-namespace cxy
-{
-namespace security
+namespace cxy::security
 {
 
 /**
@@ -474,5 +472,5 @@ public:
 };
 
 
-}} // namespace cxy::security
+} // namespace cxy::security
 #endif // _SECURITY_CIPHER_HPP_

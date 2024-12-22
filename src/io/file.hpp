@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * io/file.hpp
- * Copyright (C) 2019 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2019-2024 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -24,9 +24,7 @@
 
 #include <memory>
 
-namespace cxy
-{
-namespace io
+namespace cxy::io
 {
 
 class file_input_stream;
@@ -97,5 +95,5 @@ protected:
 };
 
 
-}} // namespace cxy::io
+} // namespace cxy::io
 #endif // _IO_FILE_HPP_

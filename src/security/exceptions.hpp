@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * security/exceptions.hpp
- * Copyright (C) 2020 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2020-2024 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -22,9 +22,7 @@
 
 #include <stdexcept>
 
-namespace cxy
-{
-namespace security
+namespace cxy::security
 {
 
 class security_exception : public std::runtime_error
@@ -79,5 +77,5 @@ public:
 };
 
 
-}} // namespace cxy::security
+} // namespace cxy::security
 #endif // _SECURITY_EXCEPTIONS_HPP_

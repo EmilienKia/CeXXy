@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * io/codec.hpp
- * Copyright (C) 2019 Emilien Kia <emilien.kia+dev@gmail.com>
+ * Copyright (C) 2019-2024 Emilien Kia <emilien.kia+dev@gmail.com>
  *
  * libcexxy is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -30,11 +30,7 @@
 #include <memory>
 #include <vector>
 
-namespace cxy
-{
-namespace io
-{
-namespace codec
+namespace cxy::io::codec
 {
 
 class percent_encoding;
@@ -848,5 +844,5 @@ public:
 
 
 
-}}} // namespace cxy::io::codec
+} // namespace cxy::io::codec
 #endif // _IO_BIN2TEXT_HPP_
